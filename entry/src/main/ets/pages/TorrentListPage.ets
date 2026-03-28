@@ -16,13 +16,9 @@ export struct TorrentListPage {
   @State filterTabs: string[] = ['全部', '下载中', '已完成', '暂停', '活跃'];
   @State filterValues: string[] = [TorrentFilter.ALL, TorrentFilter.DOWNLOADING, TorrentFilter.COMPLETED, TorrentFilter.PAUSED, TorrentFilter.ACTIVE];
   @State selectedTab: number = 0;
-  private pathStack: NavPathStack = new NavPathStack();
 
   aboutToAppear(): void {
     this.refreshData();
-  }
-
-  aboutToDisappear(): void {
   }
 
   private async refreshData(): Promise<void> {
@@ -39,7 +35,7 @@ export struct TorrentListPage {
   }
 
   build() {
-    NavDestination() {
+    Refresh({ refreshing: $$this.isLoading }) {
       Column() {
         // Filter tabs
         Tabs({ index: this.selectedTab }) {
@@ -65,7 +61,7 @@ export struct TorrentListPage {
                 TorrentListItem({
                   torrent: torrent,
                   onItemClick: (hash: string) => {
-                    this.pathStack.pushPath({ name: 'TorrentDetail', param: hash });
+                    AppService.getNavPathStack().pushPath({ name: 'TorrentDetail', param: hash });
                   }
                 })
               }
@@ -80,19 +76,8 @@ export struct TorrentListPage {
       .width('100%')
       .height('100%')
     }
-    .title('种子列表')
-    .backgroundColor($r('app.color.page_background'))
-    .menus([
-      {
-        value: '添加种子',
-        icon: '',
-        action: () => {
-          this.pathStack.pushPath({ name: 'AddTorrent' });
-        }
-      }
-    ])
-    .onReady((context: NavDestinationContext) => {
-      this.pathStack = context.pathStack;
+    .onRefreshing(() => {
+      this.refreshData();
     })
   }
 
