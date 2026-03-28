@@ -166,10 +166,11 @@ struct Index {
       .navDestination(this.navDestinationBuilder)
       .titleMode(NavigationTitleMode.Mini)
       .backgroundColor($r('app.color.page_background'))
-      .hideTitleBar(!this.isConnected)
+      .hideTitleBar(true)
     }
     .width('100%')
     .height('100%')
+    .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
   }
 
   @Builder
@@ -215,13 +216,8 @@ struct Index {
       })
     }
     .width('100%')
-    .height(56)
-    .backgroundColor($r('app.color.tab_bar_background'))
-    .shadow({
-      radius: 20,
-      color: $r('app.color.shadow_color'),
-      offsetX: 0,
-      offsetY: -2
-    })
+    .height(72)
+    .padding({ top: 6, bottom: 10, left: 8, right: 8 })
+    .backgroundColor($r('app.color.page_background'))
   }
 }

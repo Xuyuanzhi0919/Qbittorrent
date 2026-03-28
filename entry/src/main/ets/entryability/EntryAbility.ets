@@ -28,6 +28,7 @@ export default class EntryAbility extends UIAbility {
     hilog.info(DOMAIN, TAG, 'Ability onWindowStageCreate');
 
     this.mainWindow = windowStage.getMainWindowSync();
+    this.enableImmersiveLayout();
     this.updateSystemBarColor();
 
     windowStage.loadContent('pages/Index', (err) => {
@@ -62,7 +63,7 @@ export default class EntryAbility extends UIAbility {
     const config: resourceManager.Configuration = this.context.resourceManager.getConfigurationSync();
     const colorMode: number = config.colorMode;
     const isDark: boolean = colorMode === resourceManager.ColorMode.DARK;
-    const bgColor: string = isDark ? '#1A1A1A' : '#F1F3F5';
+    const bgColor: string = '#00000000';
     const contentColor: string = isDark ? '#E5E5E5' : '#182431';
     const sysBarProps: window.SystemBarProperties = {
       statusBarColor: bgColor,
@@ -74,6 +75,17 @@ export default class EntryAbility extends UIAbility {
       this.mainWindow.setWindowSystemBarProperties(sysBarProps);
     } catch (err) {
       hilog.warn(DOMAIN, TAG, 'setWindowSystemBarProperties failed: %{public}s', JSON.stringify(err));
+    }
+  }
+
+  private enableImmersiveLayout(): void {
+    if (this.mainWindow === null) {
+      return;
+    }
+    try {
+      this.mainWindow.setWindowLayoutFullScreen(true);
+    } catch (err) {
+      hilog.warn(DOMAIN, TAG, 'setWindowLayoutFullScreen failed: %{public}s', JSON.stringify(err));
     }
   }
 }

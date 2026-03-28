@@ -87,173 +87,163 @@ export struct ServerConfigPage {
 
   build() {
     NavDestination() {
-      Column() {
-        Blank().layoutWeight(1)
-
-        // Brand
-        Column({ space: 8 }) {
-          Stack() {
-            Circle()
-              .width(72)
-              .height(72)
-              .fill($r('app.color.accent_color'))
-            Text('qB')
-              .fontSize(28)
+      Stack() {
+        Column({ space: 24 }) {
+          Column({ space: 8 }) {
+            Text('连接 qBittorrent')
+              .fontSize(30)
               .fontWeight(FontWeight.Bold)
-              .fontColor('#FFFFFF')
-          }
-          .margin({ bottom: 12 })
+              .fontColor($r('app.color.text_primary'))
 
-          Text('qBittorrent')
-            .fontSize(26)
-            .fontWeight(FontWeight.Bold)
-            .fontColor($r('app.color.text_primary'))
-            .letterSpacing(1)
-
-          Text('远程管理客户端')
-            .fontSize(14)
-            .fontColor($r('app.color.text_secondary'))
-            .margin({ top: 4 })
-        }
-        .width('100%')
-        .alignItems(HorizontalAlign.Center)
-        .margin({ bottom: 40 })
-
-        // Form card
-        Column({ space: 20 }) {
-          // Server URL
-          Column({ space: 6 }) {
-            Text('服务器地址')
-              .fontSize(12)
+            Text('输入服务器信息后开始远程管理。')
+              .fontSize(13)
               .fontColor($r('app.color.text_secondary'))
-              .width('100%')
-            TextInput({ placeholder: 'http://192.168.1.x:8080', text: this.serverUrl })
-              .type(InputType.URL)
-              .placeholderColor($r('app.color.text_hint'))
-              .fontColor($r('app.color.text_primary'))
-              .caretColor($r('app.color.accent_color'))
-              .backgroundColor($r('app.color.card_background'))
-              .borderRadius(10)
-              .height(46)
-              .padding({ left: 14, right: 14 })
-              .onChange((value: string) => {
-                this.serverUrl = value;
-                this.errorMessage = '';
-              })
-          }
-
-          // Username
-          Column({ space: 6 }) {
-            Text('用户名')
-              .fontSize(12)
-              .fontColor($r('app.color.text_secondary'))
-              .width('100%')
-            TextInput({ placeholder: 'admin', text: this.username })
-              .type(InputType.USER_NAME)  // 关键属性：用户名类型
-              .placeholderColor($r('app.color.text_hint'))
-              .fontColor($r('app.color.text_primary'))
-              .caretColor($r('app.color.accent_color'))
-              .backgroundColor($r('app.color.card_background'))
-              .borderRadius(10)
-              .height(46)
-              .padding({ left: 14, right: 14 })
-              .maxLength(128)  // 长度限制
-              .onChange((value: string) => {
-                this.username = value;
-                this.errorMessage = '';
-              })
-          }
-
-          // Password
-          Column({ space: 6 }) {
-            Text('密码')
-              .fontSize(12)
-              .fontColor($r('app.color.text_secondary'))
-              .width('100%')
-            TextInput({ placeholder: '输入密码', text: this.password })
-              .type(InputType.Password)  // 关键属性：密码类型
-              .showPasswordIcon(true)    // 关键属性：显示密码图标
-              .placeholderColor($r('app.color.text_hint'))
-              .fontColor($r('app.color.text_primary'))
-              .caretColor($r('app.color.accent_color'))
-              .backgroundColor($r('app.color.card_background'))
-              .borderRadius(10)
-              .height(46)
-              .padding({ left: 14, right: 14 })
-              .maxLength(256)  // 长度限制
-              .onChange((value: string) => {
-                this.password = value;
-                this.errorMessage = '';
-              })
-          }
-
-          // Remember password toggle
-          Row() {
-            Text('记住密码')
-              .fontSize(14)
-              .fontColor($r('app.color.text_primary'))
-            Blank()
-            Toggle({ type: ToggleType.Switch, isOn: this.rememberPassword })
-              .onChange((isOn: boolean) => {
-                this.rememberPassword = isOn;
-              })
-              .selectedColor($r('app.color.accent_color'))
           }
           .width('100%')
-          .padding({ top: 4, bottom: 4 })
+          .alignItems(HorizontalAlign.Center)
 
-          // Error
-          if (this.errorMessage.length > 0) {
-            Row({ space: 6 }) {
-              Text('!')
-                .fontSize(11)
-                .fontColor('#FFFFFF')
-                .width(16)
-                .height(16)
-                .borderRadius(8)
-                .backgroundColor($r('app.color.error_color'))
-                .textAlign(TextAlign.Center)
-                .fontWeight(FontWeight.Bold)
-              Text(this.errorMessage)
-                .fontSize(13)
-                .fontColor($r('app.color.error_color'))
-                .layoutWeight(1)
+          Column({ space: 14 }) {
+            Column({ space: 6 }) {
+              Text('服务器地址')
+                .fontSize(12)
+                .fontColor($r('app.color.text_secondary'))
+                .width('100%')
+              TextInput({ placeholder: 'http://192.168.1.x:8080', text: this.serverUrl })
+                .type(InputType.URL)
+                .placeholderColor($r('app.color.text_hint'))
+                .fontColor($r('app.color.text_primary'))
+                .caretColor($r('app.color.accent_color'))
+                .backgroundColor('#F7FAFF')
+                .borderRadius(16)
+                .height(54)
+                .padding({ left: 16, right: 16 })
+                .onChange((value: string) => {
+                  this.serverUrl = value;
+                  this.errorMessage = '';
+                })
+            }
+
+            Column({ space: 6 }) {
+              Text('用户名')
+                .fontSize(12)
+                .fontColor($r('app.color.text_secondary'))
+                .width('100%')
+              TextInput({ placeholder: 'admin', text: this.username })
+                .type(InputType.USER_NAME)
+                .placeholderColor($r('app.color.text_hint'))
+                .fontColor($r('app.color.text_primary'))
+                .caretColor($r('app.color.accent_color'))
+                .backgroundColor('#F7FAFF')
+                .borderRadius(16)
+                .height(54)
+                .padding({ left: 16, right: 16 })
+                .maxLength(128)
+                .onChange((value: string) => {
+                  this.username = value;
+                  this.errorMessage = '';
+                })
+            }
+
+            Column({ space: 6 }) {
+              Text('密码')
+                .fontSize(12)
+                .fontColor($r('app.color.text_secondary'))
+                .width('100%')
+              TextInput({ placeholder: '输入密码', text: this.password })
+                .type(InputType.Password)
+                .showPasswordIcon(true)
+                .placeholderColor($r('app.color.text_hint'))
+                .fontColor($r('app.color.text_primary'))
+                .caretColor($r('app.color.accent_color'))
+                .backgroundColor('#F7FAFF')
+                .borderRadius(16)
+                .height(54)
+                .padding({ left: 16, right: 16 })
+                .maxLength(256)
+                .onChange((value: string) => {
+                  this.password = value;
+                  this.errorMessage = '';
+                })
+            }
+
+            Row() {
+              Text('记住密码')
+                .fontSize(14)
+                .fontColor($r('app.color.text_primary'))
+              Blank()
+              Toggle({ type: ToggleType.Switch, isOn: this.rememberPassword })
+                .onChange((isOn: boolean) => {
+                  this.rememberPassword = isOn;
+                })
+                .selectedColor($r('app.color.accent_color'))
             }
             .width('100%')
-            .padding({ left: 4, top: 4, bottom: 4 })
-          }
+            .padding({ top: 2, bottom: 2 })
 
-          // Connect button
+            if (this.errorMessage.length > 0) {
+              Row({ space: 6 }) {
+                Circle()
+                  .width(8)
+                  .height(8)
+                  .fill($r('app.color.error_color'))
+                Text(this.errorMessage)
+                  .fontSize(13)
+                  .fontColor($r('app.color.error_color'))
+                  .layoutWeight(1)
+              }
+              .width('100%')
+              .padding({ left: 14, right: 14, top: 12, bottom: 12 })
+              .backgroundColor('#FFF4F2')
+              .borderRadius(14)
+            }
+          }
+          .width('100%')
+          .padding({ left: 16, right: 16, top: 18, bottom: 18 })
+          .backgroundColor($r('app.color.card_background'))
+          .borderRadius(24)
+          .shadow({
+            radius: 24,
+            color: $r('app.color.shadow_color'),
+            offsetX: 0,
+            offsetY: 12
+          })
+
           Button(this.isLoading ? '正在连接...' : '连接服务器')
             .width('100%')
-            .height(48)
+            .height(56)
             .backgroundColor($r('app.color.accent_color'))
-            .borderRadius(10)
+            .borderRadius(18)
             .fontSize(16)
             .fontColor('#FFFFFF')
             .enabled(!this.isLoading)
             .opacity(this.isLoading ? 0.6 : 1)
-            .margin({ top: 4 })
             .onClick(() => {
               this.handleConnect();
             })
+          
+          Column({ space: 8 }) {
+            Text('支持保存连接信息，下次可直接进入仪表盘。')
+              .fontSize(12)
+              .fontColor($r('app.color.text_secondary'))
+              .textAlign(TextAlign.Center)
+
+            Text('请确保 qBittorrent Web UI 已启用')
+              .fontSize(12)
+              .fontColor($r('app.color.text_hint'))
+              .textAlign(TextAlign.Center)
+          }
+          .width('100%')
+          .alignItems(HorizontalAlign.Center)
         }
         .width('100%')
-        .padding({ left: 24, right: 24, top: 28, bottom: 28 })
-        .backgroundColor($r('app.color.card_background'))
-        .borderRadius(20)
-
-        Blank().layoutWeight(1)
-
-        Text('请确保 qBittorrent Web UI 已启用')
-          .fontSize(12)
-          .fontColor($r('app.color.text_hint'))
-          .margin({ bottom: 40 })
+        .height('100%')
+        .padding({ left: 16, right: 16, top: 48, bottom: 40 })
+        .justifyContent(FlexAlign.Center)
       }
       .width('100%')
       .height('100%')
-      .padding({ left: 20, right: 20 })
       .backgroundColor($r('app.color.page_background'))
+      .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
     }
     .hideTitleBar(true)
     .hideBackButton(true)
