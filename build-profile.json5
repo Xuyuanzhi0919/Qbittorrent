@@ -1,0 +1,56 @@
+{
+  "app": {
+    "signingConfigs": [
+      {
+        "name": "default",
+        "type": "HarmonyOS",
+        "material": {
+          "certpath": "/Users/chasexu/.ohos/config/default_Qbittorrent_VD9iCLjJrli9AJgCTmJsF_yTOYgfCJyPQAh1QGn3Jas=.cer",
+          "keyAlias": "debugKey",
+          "keyPassword": "0000001B48CC0FDCFD4451858774D6403AA8C9B084983381ACAFC03F09880F4C4279409DA84ADFD8A299AF",
+          "profile": "/Users/chasexu/.ohos/config/default_Qbittorrent_VD9iCLjJrli9AJgCTmJsF_yTOYgfCJyPQAh1QGn3Jas=.p7b",
+          "signAlg": "SHA256withECDSA",
+          "storeFile": "/Users/chasexu/.ohos/config/default_Qbittorrent_VD9iCLjJrli9AJgCTmJsF_yTOYgfCJyPQAh1QGn3Jas=.p12",
+          "storePassword": "0000001B214C7D2BD879C88FFEFC05D66FEAC9078116EA6E815B1E92AB970C101A284BC8C878DD5CDB30CF"
+        }
+      }
+    ],
+    "products": [
+      {
+        "name": "default",
+        "signingConfig": "default",
+        "targetSdkVersion": "6.0.2(22)",
+        "compatibleSdkVersion": "6.0.2(22)",
+        "runtimeOS": "HarmonyOS",
+        "buildOption": {
+          "strictMode": {
+            "caseSensitiveCheck": true,
+            "useNormalizedOHMUrl": true
+          }
+        }
+      }
+    ],
+    "buildModeSet": [
+      {
+        "name": "debug",
+      },
+      {
+        "name": "release"
+      }
+    ]
+  },
+  "modules": [
+    {
+      "name": "entry",
+      "srcPath": "./entry",
+      "targets": [
+        {
+          "name": "default",
+          "applyToProducts": [
+            "default"
+          ]
+        }
+      ]
+    }
+  ]
+}
