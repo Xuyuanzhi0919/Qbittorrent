@@ -19,4 +19,8 @@ export class QbiApiPaths {
   static readonly TORRENT_SET_DL_LIMIT: string = '/api/v2/torrents/setDownloadLimit';
   static readonly TORRENT_SET_UL_LIMIT: string = '/api/v2/torrents/setUploadLimit';
   static readonly APP_VERSION: string = '/api/v2/app/version';
+  static readonly TORRENTS_CATEGORIES: string = '/api/v2/torrents/categories';
+  static readonly TORRENT_CREATE_CATEGORY: string = '/api/v2/torrents/createCategory';
+  static readonly TORRENT_REMOVE_CATEGORIES: string = '/api/v2/torrents/removeCategories';
+  static readonly TORRENT_SET_CATEGORY: string = '/api/v2/torrents/setCategory';
 }

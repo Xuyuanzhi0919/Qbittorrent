@@ -258,6 +258,41 @@ export class QbittorrentService {
     return result.success;
   }
 
+  async fetchCategories(): Promise<string[]> {
+    if (!this.connectionManager.isConnected) {
+      return [];
+    }
+    const result: ApiResult<string[]> = await this.getApi().getCategories();
+    if (result.success) {
+      return result.data as string[];
+    }
+    return [];
+  }
+
+  async createCategory(name: string, savePath: string): Promise<boolean> {
+    if (!this.connectionManager.isConnected) {
+      return false;
+    }
+    const result: ApiResult<string> = await this.getApi().createCategory(name, savePath);
+    return result.success;
+  }
+
+  async removeCategories(names: string[]): Promise<boolean> {
+    if (!this.connectionManager.isConnected) {
+      return false;
+    }
+    const result: ApiResult<string> = await this.getApi().removeCategories(names);
+    return result.success;
+  }
+
+  async setTorrentCategory(hashes: string[], category: string): Promise<boolean> {
+    if (!this.connectionManager.isConnected) {
+      return false;
+    }
+    const result: ApiResult<string> = await this.getApi().setTorrentCategory(hashes, category);
+    return result.success;
+  }
+
   async addTorrentFile(filePath: string, fileName: string, savePath?: string, category?: string, tags?: string, paused?: boolean): Promise<boolean> {
     if (!this.connectionManager.isConnected) {
       return false;

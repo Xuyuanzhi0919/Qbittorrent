@@ -40,6 +40,12 @@ export struct TorrentListPage {
   @State pendingBulkAction: string = '';
   @State actionMessage: string = '';
   @State headerVisible: boolean = true;
+  @State categories: string[] = [];
+  @State showCategoryMgmtSheet: boolean = false;
+  @State newCategoryNameInput: string = '';
+  @State isCreatingCategory: boolean = false;
+  @State showSetCategorySheet: boolean = false;
+  @State isSettingCategory: boolean = false;
   private readonly hideHeaderThreshold: number = 28;
   private readonly showHeaderThreshold: number = 6;
   private hasQueuedRefresh: boolean = false;
@@ -53,6 +59,7 @@ export struct TorrentListPage {
       return;
     }
     this.refreshData(false);
+    this.refreshCategories();
     this.startAutoRefresh();
   }
 
@@ -343,6 +350,60 @@ export struct TorrentListPage {
     this.headerVisible = true;
     if (this.showFilterPanel) {
       this.contentScroller.scrollEdge(Edge.Top);
+      this.refreshCategories();
+    }
+  }
+
+  private async refreshCategories(): Promise<void> {
+    if (this.guestMode) {
+      return;
+    }
+    this.categories = await this.service.fetchCategories();
+  }
+
+  private async handleCreateCategory(): Promise<void> {
+    const name: string = this.newCategoryNameInput.trim();
+    if (name.length === 0 || this.isCreatingCategory) {
+      return;
+    }
+    this.isCreatingCategory = true;
+    const success: boolean = await this.service.createCategory(name, '');
+    this.isCreatingCategory = false;
+    if (success) {
+      this.newCategoryNameInput = '';
+      await this.refreshCategories();
+    } else {
+      this.actionMessage = '创建分类失败';
+    }
+  }
+
+  private async handleDeleteCategory(name: string): Promise<void> {
+    const success: boolean = await this.service.removeCategories([name]);
+    if (success) {
+      if (this.selectedCategoryFilter === name) {
+        this.selectedCategoryFilter = '';
+      }
+      await this.refreshCategories();
+    } else {
+      this.actionMessage = '删除分类失败';
+    }
+  }
+
+  private async handleSetCategory(category: string): Promise<void> {
+    if (this.isSettingCategory || this.selectedHashes.length === 0) {
+      return;
+    }
+    this.isSettingCategory = true;
+    const success: boolean = await this.service.setTorrentCategory(this.selectedHashes, category);
+    this.isSettingCategory = false;
+    this.showSetCategorySheet = false;
+    if (success) {
+      this.actionMessage = category.length > 0 ? `已设置分类"${category}"` : '已清除分类';
+      this.selectedHashes = [];
+      this.selectionMode = false;
+      await this.refreshData(false);
+    } else {
+      this.actionMessage = '设置分类失败';
     }
   }
 
@@ -372,6 +433,10 @@ export struct TorrentListPage {
     }
     if (this.guestMode) {
       this.actionMessage = '演示模式暂不支持批量操作';
+      return;
+    }
+    if (action === 'setCategory') {
+      this.showSetCategorySheet = true;
       return;
     }
     this.pendingBulkAction = action;
@@ -627,9 +692,17 @@ export struct TorrentListPage {
       }
       .width('100%')
       .height('100%')
+      .blur(this.showBulkActionSheet || this.showCategoryMgmtSheet || this.showSetCategorySheet ? 16 : 0)
+      .animation({ duration: 220, curve: Curve.EaseOut })
 
       if (this.showBulkActionSheet) {
         this.bulkActionSheet()
+      }
+      if (this.showCategoryMgmtSheet) {
+        this.categoryMgmtSheet()
+      }
+      if (this.showSetCategorySheet) {
+        this.setCategorySheet()
       }
     }
     .width('100%')
@@ -865,7 +938,7 @@ export struct TorrentListPage {
       }
       .width('100%')
 
-      if (this.getPanelTagOptions().length > 0 || this.getPanelCategoryOptions().length > 0) {
+      if (this.getPanelTagOptions().length > 0 || this.categories.length > 0) {
         Column({ space: 8 }) {
           Row({ space: 8 }) {
             Text('标签')
@@ -921,7 +994,7 @@ export struct TorrentListPage {
         }
       }
 
-      if (this.getPanelCategoryOptions().length > 0) {
+      if (this.categories.length > 0) {
         Column({ space: 8 }) {
           Row({ space: 8 }) {
             Text('分类')
@@ -932,47 +1005,64 @@ export struct TorrentListPage {
               .fontSize(11)
               .fontWeight(FontWeight.Medium)
               .fontColor($r('app.color.accent_color'))
+            Blank()
+            Text('管理')
+              .fontSize(11)
+              .fontWeight(FontWeight.Medium)
+              .fontColor($r('app.color.accent_color'))
+              .padding({ left: 10, right: 10, top: 4, bottom: 4 })
+              .backgroundColor($r('app.color.dashboard_surface_info'))
+              .borderRadius(999)
+              .onClick(() => {
+                this.showCategoryMgmtSheet = true;
+              })
           }
+          .width('100%')
 
-          Row({ space: 8 }) {
-            Row() {
-              Text('全部分类')
-                .fontSize(11)
-                .fontWeight(FontWeight.Medium)
-                .fontColor(this.selectedCategoryFilter.length === 0 ? $r('app.color.accent_color') : $r('app.color.text_primary'))
-            }
-            .padding({ left: 12, right: 12, top: 8, bottom: 8 })
-            .backgroundColor(this.selectedCategoryFilter.length === 0 ? $r('app.color.dashboard_surface_info') : $r('app.color.dashboard_surface_soft'))
-            .border({
-              width: 1,
-              color: this.selectedCategoryFilter.length === 0 ? $r('app.color.download_selected_border') : $r('app.color.dashboard_border')
-            })
-            .borderRadius(999)
-            .onClick(() => {
-              this.selectedCategoryFilter = '';
-              this.clearSelectionState();
-            })
-
-            ForEach(this.getPanelCategoryOptions(), (category: string) => {
+          Scroll() {
+            Row({ space: 8 }) {
               Row() {
-                Text(`分类: ${category}`)
+                Text('全部分类')
                   .fontSize(11)
                   .fontWeight(FontWeight.Medium)
-                  .fontColor(this.selectedCategoryFilter === category ? $r('app.color.accent_color') : $r('app.color.text_primary'))
+                  .fontColor(this.selectedCategoryFilter.length === 0 ? $r('app.color.accent_color') : $r('app.color.text_primary'))
               }
               .padding({ left: 12, right: 12, top: 8, bottom: 8 })
-              .backgroundColor(this.selectedCategoryFilter === category ? $r('app.color.dashboard_surface_info') : $r('app.color.dashboard_surface_soft'))
+              .backgroundColor(this.selectedCategoryFilter.length === 0 ? $r('app.color.dashboard_surface_info') : $r('app.color.dashboard_surface_soft'))
               .border({
                 width: 1,
-                color: this.selectedCategoryFilter === category ? $r('app.color.download_selected_border') : $r('app.color.dashboard_border')
+                color: this.selectedCategoryFilter.length === 0 ? $r('app.color.download_selected_border') : $r('app.color.dashboard_border')
               })
               .borderRadius(999)
               .onClick(() => {
-                this.selectedCategoryFilter = this.selectedCategoryFilter === category ? '' : category;
+                this.selectedCategoryFilter = '';
                 this.clearSelectionState();
               })
-            }, (category: string) => category)
+
+              ForEach(this.categories, (category: string) => {
+                Row() {
+                  Text(category)
+                    .fontSize(11)
+                    .fontWeight(FontWeight.Medium)
+                    .fontColor(this.selectedCategoryFilter === category ? $r('app.color.accent_color') : $r('app.color.text_primary'))
+                }
+                .padding({ left: 12, right: 12, top: 8, bottom: 8 })
+                .backgroundColor(this.selectedCategoryFilter === category ? $r('app.color.dashboard_surface_info') : $r('app.color.dashboard_surface_soft'))
+                .border({
+                  width: 1,
+                  color: this.selectedCategoryFilter === category ? $r('app.color.download_selected_border') : $r('app.color.dashboard_border')
+                })
+                .borderRadius(999)
+                .onClick(() => {
+                  this.selectedCategoryFilter = this.selectedCategoryFilter === category ? '' : category;
+                  this.clearSelectionState();
+                })
+              }, (category: string) => category)
+            }
+            .constraintSize({ minWidth: '100%' })
           }
+          .scrollBar(BarState.Off)
+          .scrollable(ScrollDirection.Horizontal)
           .width('100%')
         }
       }
@@ -1036,6 +1126,23 @@ export struct TorrentListPage {
       .borderRadius(999)
       .onClick(() => {
         this.requestBulkAction(this.shouldResumeSelection() ? 'resume' : 'pause');
+      })
+
+      Row() {
+        Text('设置分类')
+          .fontSize(12)
+          .fontWeight(FontWeight.Medium)
+          .fontColor($r('app.color.text_primary'))
+      }
+      .padding({ left: 10, right: 10, top: 6, bottom: 6 })
+      .backgroundColor($r('app.color.dashboard_surface_soft'))
+      .border({
+        width: 1,
+        color: $r('app.color.dashboard_border')
+      })
+      .borderRadius(999)
+      .onClick(() => {
+        this.requestBulkAction('setCategory');
       })
 
       Row() {
@@ -1502,5 +1609,233 @@ export struct TorrentListPage {
       return '0 项';
     }
     return '队列视图';
+  }
+
+  @Builder
+  categoryMgmtSheet() {
+    Stack({ alignContent: Alignment.Bottom }) {
+      Column()
+        .width('100%')
+        .height('100%')
+        .backgroundColor($r('app.color.download_overlay'))
+        .onClick(() => {
+          this.showCategoryMgmtSheet = false;
+        })
+
+      Column({ space: 14 }) {
+        Row()
+          .width(46)
+          .height(5)
+          .backgroundColor($r('app.color.download_sheet_handle'))
+          .borderRadius(999)
+
+        Row() {
+          Text('分类管理')
+            .fontSize(18)
+            .fontWeight(FontWeight.Bold)
+            .fontColor($r('app.color.text_primary'))
+          Blank()
+          Text('完成')
+            .fontSize(13)
+            .fontWeight(FontWeight.Medium)
+            .fontColor($r('app.color.accent_color'))
+            .onClick(() => {
+              this.showCategoryMgmtSheet = false;
+            })
+        }
+        .width('100%')
+        .alignItems(VerticalAlign.Center)
+
+        Row({ space: 8 }) {
+          TextInput({ placeholder: '新分类名称', text: this.newCategoryNameInput })
+            .placeholderColor($r('app.color.tab_inactive_fg'))
+            .fontSize(13)
+            .fontColor($r('app.color.text_primary'))
+            .backgroundColor($r('app.color.dashboard_surface_soft'))
+            .layoutWeight(1)
+            .onChange((value: string) => {
+              this.newCategoryNameInput = value;
+            })
+          Button(this.isCreatingCategory ? '创建中' : '创建')
+            .height(44)
+            .fontSize(13)
+            .fontWeight(FontWeight.Medium)
+            .fontColor($r('app.color.tab_active_fg'))
+            .backgroundColor($r('app.color.accent_color'))
+            .borderRadius(999)
+            .enabled(!this.isCreatingCategory)
+            .onClick(() => {
+              this.handleCreateCategory();
+            })
+        }
+        .width('100%')
+
+        if (this.categories.length === 0) {
+          Text('暂无分类，输入名称后点击"创建"')
+            .fontSize(13)
+            .fontWeight(FontWeight.Medium)
+            .fontColor($r('app.color.text_secondary'))
+            .textAlign(TextAlign.Center)
+            .width('100%')
+            .padding({ top: 12, bottom: 12 })
+        } else {
+          Column({ space: 8 }) {
+            ForEach(this.categories, (name: string) => {
+              Row() {
+                Text(name)
+                  .layoutWeight(1)
+                  .fontSize(13)
+                  .fontWeight(FontWeight.Medium)
+                  .fontColor($r('app.color.text_primary'))
+                  .maxLines(1)
+                  .textOverflow({ overflow: TextOverflow.Ellipsis })
+                Text('删除')
+                  .fontSize(11)
+                  .fontWeight(FontWeight.Medium)
+                  .fontColor($r('app.color.error_color'))
+                  .padding({ left: 12, right: 12, top: 6, bottom: 6 })
+                  .backgroundColor($r('app.color.dashboard_surface_danger'))
+                  .borderRadius(999)
+                  .onClick(() => {
+                    this.handleDeleteCategory(name);
+                  })
+              }
+              .width('100%')
+              .padding({ left: 12, right: 12, top: 10, bottom: 10 })
+              .backgroundColor($r('app.color.download_sheet_surface'))
+              .border({
+                width: 1,
+                color: $r('app.color.dashboard_border_soft')
+              })
+              .borderRadius(14)
+              .alignItems(VerticalAlign.Center)
+            }, (name: string) => name)
+          }
+          .width('100%')
+        }
+      }
+      .width('100%')
+      .padding({ left: 17, right: 17, top: 16, bottom: 18 })
+      .backgroundColor($r('app.color.card_background'))
+      .border({
+        width: 1,
+        color: $r('app.color.dashboard_border')
+      })
+      .borderRadius(28)
+      .margin({ left: 17, right: 17, bottom: 90 })
+      .alignItems(HorizontalAlign.Center)
+    }
+    .width('100%')
+    .height('100%')
+  }
+
+  @Builder
+  setCategorySheet() {
+    Stack({ alignContent: Alignment.Bottom }) {
+      Column()
+        .width('100%')
+        .height('100%')
+        .backgroundColor($r('app.color.download_overlay'))
+        .onClick(() => {
+          if (!this.isSettingCategory) {
+            this.showSetCategorySheet = false;
+          }
+        })
+
+      Column({ space: 14 }) {
+        Row()
+          .width(46)
+          .height(5)
+          .backgroundColor($r('app.color.download_sheet_handle'))
+          .borderRadius(999)
+
+        Row() {
+          Text('设置分类')
+            .fontSize(18)
+            .fontWeight(FontWeight.Bold)
+            .fontColor($r('app.color.text_primary'))
+          Blank()
+          if (this.isSettingCategory) {
+            LoadingProgress()
+              .width(20)
+              .height(20)
+              .color($r('app.color.accent_color'))
+          }
+        }
+        .width('100%')
+        .alignItems(VerticalAlign.Center)
+
+        Text(`为 ${this.getSelectedCount()} 个任务选择分类`)
+          .fontSize(12)
+          .fontWeight(FontWeight.Medium)
+          .fontColor($r('app.color.text_secondary'))
+          .width('100%')
+
+        Column({ space: 8 }) {
+          Row() {
+            Text('清除分类（无分类）')
+              .layoutWeight(1)
+              .fontSize(13)
+              .fontWeight(FontWeight.Medium)
+              .fontColor($r('app.color.text_secondary'))
+            SymbolGlyph($r('sys.symbol.chevron_right'))
+              .fontSize(14)
+              .fontColor([$r('app.color.text_secondary')])
+          }
+          .width('100%')
+          .padding({ left: 12, right: 12, top: 12, bottom: 12 })
+          .backgroundColor($r('app.color.download_sheet_surface'))
+          .border({
+            width: 1,
+            color: $r('app.color.dashboard_border_soft')
+          })
+          .borderRadius(14)
+          .alignItems(VerticalAlign.Center)
+          .onClick(() => {
+            this.handleSetCategory('');
+          })
+
+          ForEach(this.categories, (name: string) => {
+            Row() {
+              Text(name)
+                .layoutWeight(1)
+                .fontSize(13)
+                .fontWeight(FontWeight.Medium)
+                .fontColor($r('app.color.text_primary'))
+                .maxLines(1)
+                .textOverflow({ overflow: TextOverflow.Ellipsis })
+              SymbolGlyph($r('sys.symbol.chevron_right'))
+                .fontSize(14)
+                .fontColor([$r('app.color.text_secondary')])
+            }
+            .width('100%')
+            .padding({ left: 12, right: 12, top: 12, bottom: 12 })
+            .backgroundColor($r('app.color.download_sheet_surface'))
+            .border({
+              width: 1,
+              color: $r('app.color.dashboard_border_soft')
+            })
+            .borderRadius(14)
+            .alignItems(VerticalAlign.Center)
+            .onClick(() => {
+              this.handleSetCategory(name);
+            })
+          }, (name: string) => name)
+        }
+        .width('100%')
+      }
+      .width('100%')
+      .padding({ left: 17, right: 17, top: 16, bottom: 18 })
+      .backgroundColor($r('app.color.card_background'))
+      .border({
+        width: 1,
+        color: $r('app.color.dashboard_border')
+      })
+      .borderRadius(28)
+      .margin({ left: 17, right: 17, bottom: 90 })
+      .alignItems(HorizontalAlign.Start)
+    }
+    .width('100%')
+    .height('100%')
   }
 }

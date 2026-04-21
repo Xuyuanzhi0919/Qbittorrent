@@ -288,6 +288,39 @@ export class QbittorrentApi {
     return await this.client.post(QbiApiPaths.TORRENT_SET_UL_LIMIT, params);
   }
 
+  async getCategories(): Promise<ApiResult<string[]>> {
+    const result: ApiResult<string> = await this.client.get(QbiApiPaths.TORRENTS_CATEGORIES);
+    if (!result.success) {
+      return ApiResult.fail<string[]>(result.error, result.statusCode);
+    }
+    try {
+      const parsed: Record<string, Object> = JSON.parse(result.data as string) as Record<string, Object>;
+      return ApiResult.ok<string[]>(Object.keys(parsed));
+    } catch (err) {
+      return ApiResult.fail<string[]>('解析分类列表失败');
+    }
+  }
+
+  async createCategory(name: string, savePath: string): Promise<ApiResult<string>> {
+    const params: Record<string, string> = {};
+    params['category'] = name;
+    params['savePath'] = savePath;
+    return await this.client.post(QbiApiPaths.TORRENT_CREATE_CATEGORY, params);
+  }
+
+  async removeCategories(names: string[]): Promise<ApiResult<string>> {
+    const params: Record<string, string> = {};
+    params['categories'] = names.join('\n');
+    return await this.client.post(QbiApiPaths.TORRENT_REMOVE_CATEGORIES, params);
+  }
+
+  async setTorrentCategory(hashes: string[], category: string): Promise<ApiResult<string>> {
+    const params: Record<string, string> = {};
+    params['hashes'] = hashes.join('|');
+    params['category'] = category;
+    return await this.client.post(QbiApiPaths.TORRENT_SET_CATEGORY, params);
+  }
+
   async addTorrentFile(filePath: string, fileName: string, savePath?: string, category?: string, tags?: string, paused?: boolean): Promise<ApiResult<string>> {
     const params: Record<string, string> = {};
     if (savePath) {
