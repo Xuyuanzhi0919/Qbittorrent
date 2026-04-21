@@ -31,9 +31,9 @@ export struct DashboardPage {
   @State sessionSeconds: number = 0;
   @State decorAnimated: boolean = false;
   @State actionMessage: string = '';
-  @State pendingDeleteHash: string = '';
+  @State @Watch('onAnySheetChanged') pendingDeleteHash: string = '';
   @State expandedTaskHash: string = '';
-  @State showGlobalLimitSheet: boolean = false;
+  @State @Watch('onAnySheetChanged') showGlobalLimitSheet: boolean = false;
   @State globalLimitDlInput: string = '';
   @State globalLimitUlInput: string = '';
   @State isSettingGlobalLimit: boolean = false;
@@ -69,6 +69,12 @@ export struct DashboardPage {
       clearTimeout(this.actionMessageTimer);
       this.actionMessageTimer = -1;
     }
+    AppStorage.setOrCreate('showRootTabBar', true);
+  }
+
+  private onAnySheetChanged(): void {
+    const anyOpen: boolean = this.pendingDeleteHash.length > 0 || this.showGlobalLimitSheet;
+    AppStorage.setOrCreate('showRootTabBar', !anyOpen);
   }
 
   private startAutoRefresh(): void {

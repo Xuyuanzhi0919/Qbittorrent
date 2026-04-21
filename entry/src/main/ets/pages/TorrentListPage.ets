@@ -36,15 +36,15 @@ export struct TorrentListPage {
   @State showFilterPanel: boolean = false;
   @State selectionMode: boolean = false;
   @State selectedHashes: string[] = [];
-  @State showBulkActionSheet: boolean = false;
+  @State @Watch('onAnySheetChanged') showBulkActionSheet: boolean = false;
   @State pendingBulkAction: string = '';
   @State actionMessage: string = '';
   @State headerVisible: boolean = true;
   @State categories: string[] = [];
-  @State showCategoryMgmtSheet: boolean = false;
+  @State @Watch('onAnySheetChanged') showCategoryMgmtSheet: boolean = false;
   @State newCategoryNameInput: string = '';
   @State isCreatingCategory: boolean = false;
-  @State showSetCategorySheet: boolean = false;
+  @State @Watch('onAnySheetChanged') showSetCategorySheet: boolean = false;
   @State isSettingCategory: boolean = false;
   private readonly hideHeaderThreshold: number = 28;
   private readonly showHeaderThreshold: number = 6;
@@ -65,6 +65,12 @@ export struct TorrentListPage {
 
   aboutToDisappear(): void {
     this.stopAutoRefresh();
+    AppStorage.setOrCreate('showRootTabBar', true);
+  }
+
+  private onAnySheetChanged(): void {
+    const anyOpen: boolean = this.showBulkActionSheet || this.showCategoryMgmtSheet || this.showSetCategorySheet;
+    AppStorage.setOrCreate('showRootTabBar', !anyOpen);
   }
 
   private onScrollToTopRequested(): void {
@@ -94,6 +100,18 @@ export struct TorrentListPage {
     return 118;
   }
 
+  private getFilterPanelHeight(): number {
+    // base: outer padding(28) + header row(44) + space(12) + sort row(35) + space(12)
+    let h: number = 131;
+    if (this.getPanelTagOptions().length > 0) {
+      h += 76; // label row(20) + space(8) + chips row(36) + space(12)
+    }
+    if (this.categories.length > 0) {
+      h += 84; // label+管理 row(28) + space(8) + scroll chips row(36) + space(12)
+    }
+    return h;
+  }
+
   private getTopToolsContainerHeight(): number {
     if (!this.headerVisible) {
       return 0;
@@ -104,7 +122,7 @@ export struct TorrentListPage {
       height += 52;
     }
     if (this.showFilterPanel && this.torrents.length > 0) {
-      height += 212;
+      height += this.getFilterPanelHeight();
     }
     if (this.selectionMode && this.torrents.length > 0) {
       height += 72;
@@ -1079,98 +1097,103 @@ export struct TorrentListPage {
 
   @Builder
   bulkBarSection() {
-    Row({ space: 8 }) {
+    Scroll() {
       Row({ space: 8 }) {
-        Circle()
-          .width(8)
-          .height(8)
-          .fill($r('app.color.accent_color'))
-        Text(`已选 ${this.getSelectedCount()} 项`)
-          .fontSize(12)
-          .fontWeight(FontWeight.Medium)
-          .fontColor($r('app.color.accent_color'))
-      }
-      .padding({ left: 10, right: 10, top: 6, bottom: 6 })
-      .backgroundColor($r('app.color.dashboard_surface_info'))
-      .borderRadius(999)
+        Row({ space: 8 }) {
+          Circle()
+            .width(8)
+            .height(8)
+            .fill($r('app.color.accent_color'))
+          Text(`已选 ${this.getSelectedCount()} 项`)
+            .fontSize(12)
+            .fontWeight(FontWeight.Medium)
+            .fontColor($r('app.color.accent_color'))
+        }
+        .padding({ left: 10, right: 10, top: 6, bottom: 6 })
+        .backgroundColor($r('app.color.dashboard_surface_info'))
+        .borderRadius(999)
 
-      Row() {
-        Text('全选')
-          .fontSize(12)
-          .fontWeight(FontWeight.Medium)
-          .fontColor($r('app.color.text_primary'))
-      }
-      .padding({ left: 10, right: 10, top: 6, bottom: 6 })
-      .backgroundColor($r('app.color.dashboard_surface_soft'))
-      .border({
-        width: 1,
-        color: $r('app.color.dashboard_border')
-      })
-      .borderRadius(999)
-      .onClick(() => {
-        this.toggleSelectAll();
-      })
+        Row() {
+          Text('全选')
+            .fontSize(12)
+            .fontWeight(FontWeight.Medium)
+            .fontColor($r('app.color.text_primary'))
+        }
+        .padding({ left: 10, right: 10, top: 6, bottom: 6 })
+        .backgroundColor($r('app.color.dashboard_surface_soft'))
+        .border({
+          width: 1,
+          color: $r('app.color.dashboard_border')
+        })
+        .borderRadius(999)
+        .onClick(() => {
+          this.toggleSelectAll();
+        })
 
-      Row() {
-        Text(this.getBulkActionButtonText())
-          .fontSize(12)
-          .fontWeight(FontWeight.Medium)
-          .fontColor($r('app.color.text_primary'))
-      }
-      .padding({ left: 10, right: 10, top: 6, bottom: 6 })
-      .backgroundColor($r('app.color.dashboard_surface_soft'))
-      .border({
-        width: 1,
-        color: $r('app.color.dashboard_border')
-      })
-      .borderRadius(999)
-      .onClick(() => {
-        this.requestBulkAction(this.shouldResumeSelection() ? 'resume' : 'pause');
-      })
+        Row() {
+          Text(this.getBulkActionButtonText())
+            .fontSize(12)
+            .fontWeight(FontWeight.Medium)
+            .fontColor($r('app.color.text_primary'))
+        }
+        .padding({ left: 10, right: 10, top: 6, bottom: 6 })
+        .backgroundColor($r('app.color.dashboard_surface_soft'))
+        .border({
+          width: 1,
+          color: $r('app.color.dashboard_border')
+        })
+        .borderRadius(999)
+        .onClick(() => {
+          this.requestBulkAction(this.shouldResumeSelection() ? 'resume' : 'pause');
+        })
 
-      Row() {
-        Text('设置分类')
-          .fontSize(12)
-          .fontWeight(FontWeight.Medium)
-          .fontColor($r('app.color.text_primary'))
-      }
-      .padding({ left: 10, right: 10, top: 6, bottom: 6 })
-      .backgroundColor($r('app.color.dashboard_surface_soft'))
-      .border({
-        width: 1,
-        color: $r('app.color.dashboard_border')
-      })
-      .borderRadius(999)
-      .onClick(() => {
-        this.requestBulkAction('setCategory');
-      })
+        Row() {
+          Text('设置分类')
+            .fontSize(12)
+            .fontWeight(FontWeight.Medium)
+            .fontColor($r('app.color.text_primary'))
+        }
+        .padding({ left: 10, right: 10, top: 6, bottom: 6 })
+        .backgroundColor($r('app.color.dashboard_surface_soft'))
+        .border({
+          width: 1,
+          color: $r('app.color.dashboard_border')
+        })
+        .borderRadius(999)
+        .onClick(() => {
+          this.requestBulkAction('setCategory');
+        })
 
-      Row() {
-        Text('删除')
-          .fontSize(12)
-          .fontWeight(FontWeight.Medium)
-          .fontColor($r('app.color.error_color'))
+        Row() {
+          Text('删除')
+            .fontSize(12)
+            .fontWeight(FontWeight.Medium)
+            .fontColor($r('app.color.error_color'))
+        }
+        .padding({ left: 10, right: 10, top: 6, bottom: 6 })
+        .backgroundColor($r('app.color.dashboard_surface_danger'))
+        .border({
+          width: 1,
+          color: $r('app.color.download_warn_border')
+        })
+        .borderRadius(999)
+        .onClick(() => {
+          this.requestBulkAction('delete');
+        })
       }
-      .padding({ left: 10, right: 10, top: 6, bottom: 6 })
-      .backgroundColor($r('app.color.dashboard_surface_danger'))
-      .border({
-        width: 1,
-        color: $r('app.color.download_warn_border')
-      })
-      .borderRadius(999)
-      .onClick(() => {
-        this.requestBulkAction('delete');
-      })
+      .padding({ left: 12, right: 12, top: 10, bottom: 10 })
+      .constraintSize({ minWidth: '100%' })
+      .alignItems(VerticalAlign.Center)
     }
+    .scrollBar(BarState.Off)
+    .scrollable(ScrollDirection.Horizontal)
     .width('100%')
-    .padding({ left: 12, right: 12, top: 10, bottom: 10 })
     .backgroundColor($r('app.color.card_background'))
     .border({
       width: 1,
       color: $r('app.color.dashboard_border')
     })
     .borderRadius(20)
-    .alignItems(VerticalAlign.Center)
   }
 
   @Builder
@@ -1565,14 +1588,9 @@ export struct TorrentListPage {
         .width('100%')
       }
       .width('100%')
-      .padding({ left: 17, right: 17, top: 16, bottom: 18 })
+      .padding({ left: 20, right: 20, top: 16, bottom: 40 })
       .backgroundColor($r('app.color.card_background'))
-      .border({
-        width: 1,
-        color: $r('app.color.dashboard_border')
-      })
-      .borderRadius(28)
-      .margin({ left: 17, right: 17, bottom: 90 })
+      .borderRadius({ topLeft: 28, topRight: 28, bottomLeft: 0, bottomRight: 0 })
       .alignItems(HorizontalAlign.Center)
     }
     .width('100%')
@@ -1622,7 +1640,7 @@ export struct TorrentListPage {
           this.showCategoryMgmtSheet = false;
         })
 
-      Column({ space: 14 }) {
+      Column({ space: 18 }) {
         Row()
           .width(46)
           .height(5)
@@ -1630,15 +1648,27 @@ export struct TorrentListPage {
           .borderRadius(999)
 
         Row() {
-          Text('分类管理')
-            .fontSize(18)
-            .fontWeight(FontWeight.Bold)
-            .fontColor($r('app.color.text_primary'))
+          Column({ space: 3 }) {
+            Text('分类管理')
+              .fontSize(18)
+              .fontWeight(FontWeight.Bold)
+              .fontColor($r('app.color.text_primary'))
+            Text(`${this.categories.length} 个分类`)
+              .fontSize(11)
+              .fontWeight(FontWeight.Medium)
+              .fontColor($r('app.color.text_secondary'))
+          }
+          .alignItems(HorizontalAlign.Start)
+
           Blank()
+
           Text('完成')
             .fontSize(13)
             .fontWeight(FontWeight.Medium)
             .fontColor($r('app.color.accent_color'))
+            .padding({ left: 16, right: 16, top: 8, bottom: 8 })
+            .backgroundColor($r('app.color.dashboard_surface_info'))
+            .borderRadius(999)
             .onClick(() => {
               this.showCategoryMgmtSheet = false;
             })
@@ -1646,83 +1676,117 @@ export struct TorrentListPage {
         .width('100%')
         .alignItems(VerticalAlign.Center)
 
-        Row({ space: 8 }) {
-          TextInput({ placeholder: '新分类名称', text: this.newCategoryNameInput })
+        Row({ space: 10 }) {
+          TextInput({ placeholder: '输入新分类名称…', text: this.newCategoryNameInput })
             .placeholderColor($r('app.color.tab_inactive_fg'))
             .fontSize(13)
             .fontColor($r('app.color.text_primary'))
-            .backgroundColor($r('app.color.dashboard_surface_soft'))
+            .backgroundColor(Color.Transparent)
             .layoutWeight(1)
             .onChange((value: string) => {
               this.newCategoryNameInput = value;
             })
-          Button(this.isCreatingCategory ? '创建中' : '创建')
-            .height(44)
-            .fontSize(13)
-            .fontWeight(FontWeight.Medium)
-            .fontColor($r('app.color.tab_active_fg'))
-            .backgroundColor($r('app.color.accent_color'))
-            .borderRadius(999)
-            .enabled(!this.isCreatingCategory)
-            .onClick(() => {
-              this.handleCreateCategory();
-            })
+          if (this.isCreatingCategory) {
+            LoadingProgress()
+              .width(18)
+              .height(18)
+              .color($r('app.color.accent_color'))
+          } else if (this.newCategoryNameInput.trim().length > 0) {
+            Text('创建')
+              .fontSize(12)
+              .fontWeight(FontWeight.Bold)
+              .fontColor($r('app.color.tab_active_fg'))
+              .padding({ left: 14, right: 14, top: 7, bottom: 7 })
+              .backgroundColor($r('app.color.accent_color'))
+              .borderRadius(999)
+              .onClick(() => {
+                this.handleCreateCategory();
+              })
+          }
         }
         .width('100%')
+        .height(50)
+        .padding({ left: 16, right: 12 })
+        .backgroundColor($r('app.color.dashboard_surface_soft'))
+        .border({
+          width: 1,
+          color: $r('app.color.dashboard_border')
+        })
+        .borderRadius(999)
 
         if (this.categories.length === 0) {
-          Text('暂无分类，输入名称后点击"创建"')
-            .fontSize(13)
-            .fontWeight(FontWeight.Medium)
-            .fontColor($r('app.color.text_secondary'))
-            .textAlign(TextAlign.Center)
-            .width('100%')
-            .padding({ top: 12, bottom: 12 })
+          Column({ space: 6 }) {
+            Text('暂无分类')
+              .fontSize(15)
+              .fontWeight(FontWeight.Medium)
+              .fontColor($r('app.color.text_secondary'))
+            Text('在上方输入名称后点击「创建」')
+              .fontSize(12)
+              .fontColor($r('app.color.tab_inactive_fg'))
+          }
+          .width('100%')
+          .padding({ top: 30, bottom: 30 })
+          .alignItems(HorizontalAlign.Center)
+          .backgroundColor($r('app.color.dashboard_surface_soft'))
+          .border({
+            width: 1,
+            color: $r('app.color.dashboard_border')
+          })
+          .borderRadius(18)
         } else {
-          Column({ space: 8 }) {
-            ForEach(this.categories, (name: string) => {
-              Row() {
-                Text(name)
-                  .layoutWeight(1)
-                  .fontSize(13)
-                  .fontWeight(FontWeight.Medium)
-                  .fontColor($r('app.color.text_primary'))
-                  .maxLines(1)
-                  .textOverflow({ overflow: TextOverflow.Ellipsis })
-                Text('删除')
-                  .fontSize(11)
-                  .fontWeight(FontWeight.Medium)
-                  .fontColor($r('app.color.error_color'))
-                  .padding({ left: 12, right: 12, top: 6, bottom: 6 })
-                  .backgroundColor($r('app.color.dashboard_surface_danger'))
-                  .borderRadius(999)
-                  .onClick(() => {
-                    this.handleDeleteCategory(name);
-                  })
+          Column() {
+            ForEach(this.categories, (name: string, index?: number) => {
+              Column() {
+                if (index !== undefined && index > 0) {
+                  Divider()
+                    .color($r('app.color.dashboard_border_soft'))
+                    .margin({ left: 14 })
+                }
+                Row() {
+                  Row()
+                    .width(8)
+                    .height(8)
+                    .backgroundColor($r('app.color.accent_color'))
+                    .borderRadius(999)
+                    .margin({ right: 12 })
+                  Text(name)
+                    .layoutWeight(1)
+                    .fontSize(14)
+                    .fontWeight(FontWeight.Medium)
+                    .fontColor($r('app.color.text_primary'))
+                    .maxLines(1)
+                    .textOverflow({ overflow: TextOverflow.Ellipsis })
+                  Text('删除')
+                    .fontSize(11)
+                    .fontWeight(FontWeight.Medium)
+                    .fontColor($r('app.color.error_color'))
+                    .padding({ left: 12, right: 12, top: 5, bottom: 5 })
+                    .backgroundColor($r('app.color.dashboard_surface_danger'))
+                    .borderRadius(999)
+                    .onClick(() => {
+                      this.handleDeleteCategory(name);
+                    })
+                }
+                .width('100%')
+                .padding({ left: 14, right: 14, top: 13, bottom: 13 })
+                .alignItems(VerticalAlign.Center)
               }
-              .width('100%')
-              .padding({ left: 12, right: 12, top: 10, bottom: 10 })
-              .backgroundColor($r('app.color.download_sheet_surface'))
-              .border({
-                width: 1,
-                color: $r('app.color.dashboard_border_soft')
-              })
-              .borderRadius(14)
-              .alignItems(VerticalAlign.Center)
             }, (name: string) => name)
           }
           .width('100%')
+          .backgroundColor($r('app.color.download_sheet_surface'))
+          .border({
+            width: 1,
+            color: $r('app.color.dashboard_border_soft')
+          })
+          .borderRadius(18)
+          .clip(true)
         }
       }
       .width('100%')
-      .padding({ left: 17, right: 17, top: 16, bottom: 18 })
+      .padding({ left: 20, right: 20, top: 14, bottom: 40 })
       .backgroundColor($r('app.color.card_background'))
-      .border({
-        width: 1,
-        color: $r('app.color.dashboard_border')
-      })
-      .borderRadius(28)
-      .margin({ left: 17, right: 17, bottom: 90 })
+      .borderRadius({ topLeft: 28, topRight: 28, bottomLeft: 0, bottomRight: 0 })
       .alignItems(HorizontalAlign.Center)
     }
     .width('100%')
@@ -1825,14 +1889,9 @@ export struct TorrentListPage {
         .width('100%')
       }
       .width('100%')
-      .padding({ left: 17, right: 17, top: 16, bottom: 18 })
+      .padding({ left: 20, right: 20, top: 16, bottom: 40 })
       .backgroundColor($r('app.color.card_background'))
-      .border({
-        width: 1,
-        color: $r('app.color.dashboard_border')
-      })
-      .borderRadius(28)
-      .margin({ left: 17, right: 17, bottom: 90 })
+      .borderRadius({ topLeft: 28, topRight: 28, bottomLeft: 0, bottomRight: 0 })
       .alignItems(HorizontalAlign.Start)
     }
     .width('100%')
