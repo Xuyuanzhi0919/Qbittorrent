@@ -3,6 +3,7 @@ import { hilog } from '@kit.PerformanceAnalysisKit';
 import { window } from '@kit.ArkUI';
 import { PreferencesStore } from '../store/PreferencesStore';
 import { resourceManager } from '@kit.LocalizationKit';
+import { notificationManager } from '@kit.NotificationKit';
 
 const DOMAIN: number = 0x0000;
 const TAG: string = 'EntryAbility';
@@ -42,6 +43,9 @@ export default class EntryAbility extends UIAbility {
         return;
       }
       hilog.info(DOMAIN, TAG, 'Succeeded in loading content.');
+      notificationManager.requestEnableNotification(this.context).catch((e: Error) => {
+        hilog.warn(DOMAIN, TAG, 'requestEnableNotification failed: %{public}s', e.message);
+      });
     });
   }
 

@@ -9,6 +9,7 @@ import { TorrentPeersSync } from '../model/TorrentPeersSync';
 import { ApiResult } from '../model/ApiResult';
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { AppConstants } from '../common/constants/AppConstants';
+import { notificationManager } from '@kit.NotificationKit';
 
 export class TorrentFilter {
   static readonly ALL: string = 'all';
@@ -22,6 +23,8 @@ export class TorrentFilter {
 export class QbittorrentService {
   private connectionManager: ConnectionManager;
   private pollingTimer: number = -1;
+  private prevDownloadingHashes: string[] = [];
+  private notifiedCompletedHashes: string[] = [];
 
   constructor(connectionManager: ConnectionManager) {
     this.connectionManager = connectionManager;
@@ -53,14 +56,74 @@ export class QbittorrentService {
 
   async fetchTorrentList(filter?: string, sort?: string, hashes?: string): Promise<TorrentInfo[]> {
     if (!this.connectionManager.isConnected) {
+      this.prevDownloadingHashes = [];
       return [];
     }
     const result: ApiResult<TorrentInfo[]> = await this.getApi().getTorrentList(filter, sort, undefined, hashes);
     if (result.success) {
-      return result.data as TorrentInfo[];
+      const torrents: TorrentInfo[] = result.data as TorrentInfo[];
+      if (hashes === undefined && filter === undefined) {
+        this.checkAndNotifyCompletions(torrents);
+      }
+      return torrents;
     }
     hilog.error(AppConstants.LOG_DOMAIN, AppConstants.LOG_TAG, `fetchTorrentList failed: ${result.error}`);
     return [];
+  }
+
+  private checkAndNotifyCompletions(torrents: TorrentInfo[]): void {
+    const currentDownloading: string[] = [];
+    for (const t of torrents) {
+      if (t.isDownloading()) {
+        currentDownloading.push(t.hash);
+      }
+    }
+
+    for (const hash of this.prevDownloadingHashes) {
+      if (this.notifiedCompletedHashes.includes(hash)) {
+        continue;
+      }
+      let found: TorrentInfo | undefined = undefined;
+      for (const t of torrents) {
+        if (t.hash === hash) {
+          found = t;
+          break;
+        }
+      }
+      if (found !== undefined && found.isCompleted()) {
+        this.publishCompletionNotification(found);
+        this.notifiedCompletedHashes.push(hash);
+      }
+    }
+
+    this.prevDownloadingHashes = currentDownloading;
+  }
+
+  private async publishCompletionNotification(torrent: TorrentInfo): Promise<void> {
+    let notifId: number = 0;
+    for (let i: number = 0; i < torrent.hash.length; i++) {
+      notifId = (notifId * 31 + torrent.hash.charCodeAt(i)) % 2000000000;
+    }
+    notifId = notifId + 1;
+
+    const basicContent: notificationManager.NotificationBasicContent = {
+      title: '下载完成',
+      text: torrent.name,
+    };
+    const content: notificationManager.NotificationContent = {
+      notificationContentType: notificationManager.ContentType.NOTIFICATION_CONTENT_BASIC_TEXT,
+      normal: basicContent,
+    };
+    const request: notificationManager.NotificationRequest = {
+      id: notifId,
+      content: content,
+    };
+    try {
+      await notificationManager.publish(request);
+      hilog.info(AppConstants.LOG_DOMAIN, AppConstants.LOG_TAG, `Notification sent: ${torrent.name}`);
+    } catch (err) {
+      hilog.warn(AppConstants.LOG_DOMAIN, AppConstants.LOG_TAG, `Notification failed: ${JSON.stringify(err)}`);
+    }
   }
 
   async fetchTorrent(hash: string): Promise<TorrentInfo | null> {
