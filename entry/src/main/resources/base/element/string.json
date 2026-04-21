@@ -1,10 +1,10 @@
 {
   "string": [
-    { "name": "module_desc", "value": "qBittorrent 远程管理" },
-    { "name": "EntryAbility_desc", "value": "qBittorrent 远程管理客户端" },
-    { "name": "EntryAbility_label", "value": "qBittorrent" },
+    { "name": "module_desc", "value": "TorrentPilot 远程下载控制台" },
+    { "name": "EntryAbility_desc", "value": "TorrentPilot 远程下载控制台" },
+    { "name": "EntryAbility_label", "value": "TorrentPilot" },
     { "name": "permission_internet_reason", "value": "用于连接远程 qBittorrent 服务器" },
-    { "name": "app_name", "value": "qBittorrent" },
+    { "name": "app_name", "value": "TorrentPilot" },
     { "name": "server_url", "value": "服务器地址" },
     { "name": "server_url_hint", "value": "http://192.168.1.x:8080" },
     { "name": "username", "value": "用户名" },

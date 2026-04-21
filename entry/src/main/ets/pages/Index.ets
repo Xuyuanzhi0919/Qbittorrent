@@ -8,14 +8,8 @@ import { AddTorrentPage } from './AddTorrentPage';
 import { SettingsPage } from './SettingsPage';
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { AppConstants } from '../common/constants/AppConstants';
-
-// Tab 项接口定义
-interface TabItem {
-  title: string;
-  icon: Resource;
-  activeIcon: Resource;
-  index: number;
-}
+import { hdsMaterial, HdsTabs, HdsTabsController } from '@kit.UIDesignKit';
+import { window, SymbolGlyphModifier } from '@kit.ArkUI';
 
 // 全局服务实例
 export class AppService {
@@ -44,20 +38,53 @@ export class AppService {
   static setNavPathStack(stack: NavPathStack): void {
     AppService.navPathStack = stack;
   }
+
+  static pushPage(name: string, param?: Object): void {
+    if (param === undefined) {
+      AppService.getNavPathStack().pushPath({ name: name });
+      return;
+    }
+    AppService.getNavPathStack().pushPath({ name: name, param: param });
+  }
 }
 
 @Entry
 @Component
 struct Index {
   @State navPathStack: NavPathStack = new NavPathStack();
-  @State currentTabIndex: number = 0;
+  @StorageLink('currentTabIndex') currentTabIndex: number = 0;
+  @StorageLink('downloadTabScrollToTopToken') downloadTabScrollToTopToken: number = 0;
+  @StorageLink('torrentListRefreshToken') torrentListRefreshToken: number = 0;
+  @StorageLink('guestMode') guestMode: boolean = false;
   @StorageLink('isConnected') @Watch('onConnectedChanged') isConnected: boolean = false;
   @State isLoading: boolean = true;
+  @State bottomAvoidHeight: number = 0;
+  private hdsTabsController: HdsTabsController = new HdsTabsController();
 
   aboutToAppear(): void {
     AppStorage.setOrCreate('isConnected', false);
+    AppStorage.setOrCreate('currentTabIndex', 0);
+    AppStorage.setOrCreate('downloadTabScrollToTopToken', 0);
+    AppStorage.setOrCreate('torrentListRefreshToken', 0);
+    AppStorage.setOrCreate('guestMode', false);
+    AppStorage.setOrCreate('rootTabBarReserveHeight', 0);
     AppService.setNavPathStack(this.navPathStack);
+    this.getBottomAvoidArea();
     this.initApp();
+  }
+
+  private async getBottomAvoidArea(): Promise<void> {
+    try {
+      const mainWindow: window.Window = window.findWindow('MainWindow') ??
+        await window.getLastWindow(getContext(this));
+      const avoidArea: window.AvoidArea = mainWindow.getWindowAvoidArea(window.AvoidAreaType.TYPE_NAVIGATION_INDICATOR);
+      this.bottomAvoidHeight = avoidArea.bottomRect.height;
+    } catch (err) {
+      hilog.warn(AppConstants.LOG_DOMAIN, AppConstants.LOG_TAG,
+        `Failed to get bottom avoid area: ${JSON.stringify(err)}`);
+      this.bottomAvoidHeight = 28;
+    }
+    AppStorage.setOrCreate('rootTabBarReserveHeight', this.bottomAvoidHeight + 86);
   }
 
   private async initApp(): Promise<void> {
@@ -71,34 +98,9 @@ struct Index {
   }
 
   private onConnectedChanged(): void {
-    if (!this.isConnected) {
+    if (!this.isConnected && !this.guestMode) {
       this.navPathStack.clear();
     }
-  }
-
-  @Builder
-  tabBuilder(title: string, icon: Resource, activeIcon: Resource, isActive: boolean) {
-    Column({ space: 4 }) {
-      SymbolGlyph(isActive ? activeIcon : icon)
-        .fontSize(24)
-        .fontColor([isActive ? $r('app.color.accent_color') : $r('app.color.text_secondary')])
-        .animation({
-          duration: 200,
-          curve: Curve.EaseInOut
-        })
-      Text(title)
-        .fontSize(11)
-        .fontWeight(isActive ? FontWeight.Medium : FontWeight.Normal)
-        .fontColor(isActive ? $r('app.color.accent_color') : $r('app.color.text_secondary'))
-        .animation({
-          duration: 200,
-          curve: Curve.EaseInOut
-        })
-    }
-    .width('100%')
-    .height('100%')
-    .justifyContent(FlexAlign.Center)
-    .backgroundColor($r('app.color.tab_bar_background'))
   }
 
   @Builder
@@ -113,111 +115,94 @@ struct Index {
   }
 
   build() {
-    Stack({ alignContent: Alignment.Bottom }) {
-      // 主内容区域
-      Navigation(this.navPathStack) {
-        if (this.isLoading) {
-          Column() {
-            Column({ space: 16 }) {
-              LoadingProgress()
-                .width(48)
-                .height(48)
-                .color($r('app.color.accent_color'))
-              Column({ space: 4 }) {
-                Text('qBittorrent')
-                  .fontSize(20)
-                  .fontWeight(FontWeight.Bold)
-                  .fontColor($r('app.color.text_primary'))
-                Text('远程管理客户端')
-                  .fontSize(14)
-                  .fontColor($r('app.color.text_secondary'))
-              }
+    Navigation(this.navPathStack) {
+      if (this.isLoading) {
+        Column() {
+          Column({ space: 16 }) {
+            LoadingProgress()
+              .width(48)
+              .height(48)
+              .color($r('app.color.accent_color'))
+            Column({ space: 4 }) {
+              Text('TorrentPilot')
+                .fontSize(20)
+                .fontWeight(FontWeight.Bold)
+                .fontColor($r('app.color.text_primary'))
+              Text('远程下载控制台')
+                .fontSize(14)
+                .fontColor($r('app.color.text_secondary'))
             }
           }
-          .width('100%')
-          .height('100%')
-          .justifyContent(FlexAlign.Center)
-          .backgroundColor($r('app.color.page_background'))
-        } else if (!this.isConnected) {
-          ServerConfigPage()
-        } else {
-          Column() {
-            // Tab 内容
-            Stack() {
-              if (this.currentTabIndex === 0) {
-                DashboardPage()
-              } else if (this.currentTabIndex === 1) {
-                TorrentListPage()
-              } else if (this.currentTabIndex === 2) {
-                SettingsPage()
-              }
-            }
-            .width('100%')
-            .layoutWeight(1)
-
-            // 自定义底部导航栏
-            this.customTabBar()
-          }
-          .width('100%')
-          .height('100%')
         }
+        .width('100%')
+        .height('100%')
+        .justifyContent(FlexAlign.Center)
+        .backgroundColor($r('app.color.page_background'))
+      } else if (!this.isConnected && !this.guestMode) {
+        ServerConfigPage()
+      } else {
+        HdsTabs({
+          barPosition: BarPosition.End,
+          index: this.currentTabIndex,
+          controller: this.hdsTabsController
+        }) {
+          TabContent() {
+            DashboardPage()
+          }
+          .tabBar(new BottomTabBarStyle(
+            {
+              normal: new SymbolGlyphModifier($r('sys.symbol.house')),
+              selected: new SymbolGlyphModifier($r('sys.symbol.house_fill'))
+            },
+            '首页'
+          ))
+
+          TabContent() {
+            TorrentListPage()
+          }
+          .tabBar(new BottomTabBarStyle(
+            {
+              normal: new SymbolGlyphModifier($r('sys.symbol.arrow_down_circle')),
+              selected: new SymbolGlyphModifier($r('sys.symbol.arrow_down_circle'))
+            },
+            '下载'
+          ))
+
+          TabContent() {
+            SettingsPage()
+          }
+          .tabBar(new BottomTabBarStyle(
+            {
+              normal: new SymbolGlyphModifier($r('sys.symbol.person')),
+              selected: new SymbolGlyphModifier($r('sys.symbol.person_fill'))
+            },
+            '我的'
+          ))
+        }
+        .barOverlap(true)
+        .scrollable(false)
+        .animationDuration(0)
+        .barFloatingStyle({
+          barBottomMargin: this.bottomAvoidHeight + 6,
+          systemMaterialEffect: {
+            materialType: hdsMaterial.MaterialType.ADAPTIVE,
+            materialLevel: hdsMaterial.MaterialLevel.ADAPTIVE
+          }
+        })
+        .onChange((index: number) => {
+          this.currentTabIndex = index;
+        })
+        .width('100%')
+        .height('100%')
       }
-      .mode(NavigationMode.Stack)
-      .navDestination(this.navDestinationBuilder)
-      .titleMode(NavigationTitleMode.Mini)
-      .backgroundColor($r('app.color.page_background'))
-      .hideTitleBar(true)
     }
+    .mode(NavigationMode.Stack)
+    .navDestination(this.navDestinationBuilder)
+    .titleMode(NavigationTitleMode.Mini)
+    .backgroundColor($r('app.color.page_background'))
+    .hideTitleBar(true)
+    .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
     .width('100%')
     .height('100%')
-    .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
-  }
-
-  @Builder
-  customTabBar() {
-    Row() {
-      ForEach([
-        { title: '首页', icon: $r('sys.symbol.house'), activeIcon: $r('sys.symbol.house_fill'), index: 0 },
-        { title: '下载', icon: $r('sys.symbol.arrow_down'), activeIcon: $r('sys.symbol.arrow_down'), index: 1 },
-        { title: '我的', icon: $r('sys.symbol.person'), activeIcon: $r('sys.symbol.person_fill'), index: 2 }
-      ] as TabItem[], (item: TabItem) => {
-        Column({ space: 4 }) {
-          Stack({ alignContent: Alignment.Center }) {
-            // 选中指示器
-            if (this.currentTabIndex === item.index) {
-              Column()
-                .width(32)
-                .height(3)
-                .backgroundColor($r('app.color.accent_color'))
-                .borderRadius(2)
-                .margin({ bottom: 4 })
-            }
-
-            Column({ space: 4 }) {
-              SymbolGlyph(this.currentTabIndex === item.index ? item.activeIcon : item.icon)
-                .fontSize(24)
-                .fontColor([this.currentTabIndex === item.index ?
-                  $r('app.color.accent_color') : $r('app.color.text_secondary')])
-              Text(item.title)
-                .fontSize(11)
-                .fontWeight(this.currentTabIndex === item.index ? FontWeight.Medium : FontWeight.Normal)
-                .fontColor(this.currentTabIndex === item.index ?
-                  $r('app.color.accent_color') : $r('app.color.text_secondary'))
-            }
-          }
-          .layoutWeight(1)
-          .height('100%')
-          .onClick(() => {
-            this.currentTabIndex = item.index;
-          })
-        }
-        .layoutWeight(1)
-        .height('100%')
-      })
-    }
-    .width('100%')
-    .height(72)
-    .padding({ top: 6, bottom: 10, left: 8, right: 8 })
-    .backgroundColor($r('app.color.page_background'))
   }
 }

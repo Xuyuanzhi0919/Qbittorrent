@@ -11,6 +11,12 @@ export class QbiApiPaths {
   static readonly TORRENT_ADD: string = '/api/v2/torrents/add';
   static readonly TORRENT_PAUSE: string = '/api/v2/torrents/stop';
   static readonly TORRENT_RESUME: string = '/api/v2/torrents/start';
+  static readonly TORRENT_REANNOUNCE: string = '/api/v2/torrents/reannounce';
   static readonly TORRENT_DELETE: string = '/api/v2/torrents/delete';
-  static readonly APP_VERSION: string = '/api/v2/apprsion';
+  static readonly TRANSFER_SET_DL_LIMIT: string = '/api/v2/transfer/setDownloadLimit';
+  static readonly TRANSFER_SET_UL_LIMIT: string = '/api/v2/transfer/setUploadLimit';
+  static readonly TORRENT_FILE_PRIO: string = '/api/v2/torrents/filePrio';
+  static readonly TORRENT_SET_DL_LIMIT: string = '/api/v2/torrents/setDownloadLimit';
+  static readonly TORRENT_SET_UL_LIMIT: string = '/api/v2/torrents/setUploadLimit';
+  static readonly APP_VERSION: string = '/api/v2/app/version';
 }

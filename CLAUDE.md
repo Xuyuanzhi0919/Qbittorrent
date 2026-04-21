@@ -4,48 +4,82 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-HarmonyOS (鸿蒙) ArkTS 应用项目，bundleName 为 `com.movie.qbittorrent`。基于 Stage 模型开发，目标 SDK 版本为 HarmonyOS 6.0.2(22)，设备类型为 phone。
+HarmonyOS (鸿蒙) ArkTS 应用，bundleName `com.movie.qbittorrent`，对外显示名称 **TorrentPilot**。基于 Stage 模型，目标 SDK HarmonyOS 6.0.2(22)，设备类型 phone。
 
 ## Build & Development
 
-本项目使用 **Hvigor** 作为构建工具，**OHPM** 作为包管理器。需要在 DevEco Studio 中进行构建和运行。
+构建工具 **Hvigor**，包管理器 **OHPM**，需在 DevEco Studio 中构建和运行。
 
-- **构建**: 通过 DevEco Studio 的 Build 菜单，或命令行 `hvigorw assembleHap`
+- **构建**: DevEco Studio Build 菜单，或 `hvigorw assembleHap`
 - **依赖安装**: `ohpm install`
-- **代码检查**: `code-linter`（规则定义在 `code-linter.json5`，包含 `@performance/recommended` 和 `@typescript-eslint/recommended` 规则集，以及多项 `@security` 安全规则）
-- **测试**: 测试框架使用 `@ohos/hypium`，测试文件位于：
-  - 单元测试: `entry/src/test/`
-  - 仪器测试: `entry/src/ohosTest/`
+- **代码检查**: `code-linter`（规则见 `code-linter.json5`：`@performance/recommended`、`@typescript-eslint/recommended` 以及多项 `@security` 规则）
+- **测试框架**: `@ohos/hypium`；单元测试 `entry/src/test/`，仪器测试 `entry/src/ohosTest/`
 
 ## Architecture
 
+### Layered Structure
+
 ```
-AppScope/              # 应用级配置和资源（app.json5、图标、字符串）
-entry/                 # 主模块（entry HAP）
-  src/main/
-    ets/
-      entryability/    # UIAbility 入口
-      entrybackupability/  # 备份扩展能力
-      pages/           # 页面（Index.ets 为首页）
-    resources/         # 模块资源（字符串、颜色、图片、配置）
-    module.json5       # 模块配置（abilities、extensionAbilities、页面路由）
-hvigor/                # Hvigor 构建配置
-oh-package.json5       # OHPM 依赖声明
-build-profile.json5    # 构建配置（SDK 版本、签名、构建模式）
-code-linter.json5      # 代码检查规则
+pages/           → UI 层：页面和用户交互
+components/      → 可复用 UI 组件
+service/         → 业务逻辑层
+  AppService           → 纯静态注册中心，定义在 Index.ets，管理 NavPathStack、Tab 栏显隐、Service 实例
+  ConnectionManager    → 认证与连接状态（SID cookie 会话），含自动重连
+  QbittorrentService   → 高层 API 封装（种子操作、传输统计、轮询）
+network/         → 网络层
+  HttpClient           → HTTP 客户端单例，管理 baseUrl 和 SID cookie
+  QbittorrentApi       → qBittorrent REST API 封装；constructor(useSharedClient=true) — false 时创建独立实例（仅用于连接验证）
+  QbiApiPaths          → API 端点常量
+model/           → 数据模型，均提供静态 fromJson(json) 工厂方法
+store/           → 持久化（PreferencesStore — 服务器配置、记住密码、轮询间隔）
+common/          → AppConstants（LOG_DOMAIN/TAG、HTTP_TIMEOUT=15s、DEFAULT_POLLING_INTERVAL=5s）、FormatUtils
+mock/            → Demo 模式数据生成器 DemoDataProvider
 ```
 
-## Key Conventions
+### Key Architectural Patterns
 
-- 使用 **ArkTS** 语言（`.ets` 文件），基于 TypeScript 扩展
-- UI 使用声明式范式：`@Entry`、`@Component`、`@State` 等装饰器
-- 页面路由通过 `entry/src/main/resources/base/profile/main_pages.json` 配置
-- 日志使用 `hilog`，domain 为 `0x0000`，tag 为 `testTag`
-- Release 构建启用代码混淆（属性名、顶层名、文件名、导出名）
-- API 类型为 Stage 模式（`apiType: "stageMode"`）
+- **AppService 静态注册中心**: 定义在 `Index.ets`，纯静态类，提供 `ConnectionManager`、`QbittorrentService`、`NavPathStack` 全局访问点
+- **Service 单例**: `HttpClient`、`PreferencesStore` 使用 `static getInstance()`；`ConnectionManager` 由 `AppService` 懒加载持有
+- **PreferencesStore 初始化**: 必须在 `EntryAbility.onCreate()` 中调用 `PreferencesStore.getInstance().init(context)`；其他调用者通过 `waitForInit()` 等待（轮询最多 5 秒）
+- **状态管理**: 全局状态 `AppStorage` + `@StorageLink`；页面级状态 `@State`
+- **导航**: 仅 `pages/Index` 注册于 `main_pages.json`；子页面（ServerConfig、TorrentDetail、AddTorrent）通过 `AppService.pushPage()` 压入 `NavPathStack`
+- **Tab 导航**: `HdsTabs`（`@kit.UIDesignKit`）隐藏内置 bar，自定义悬浮胶囊 Tab 栏，`AppStorage('currentTabIndex')` 控制；再次点击当前 Tab（下载列表）触发回顶信号
+- **API 响应封装**: `ApiResult<T>` 统一包装，含 `success`、`data`、`error`、`statusCode`
+- **认证流程**: `postForLogin` 从响应头提取 SID cookie，后续请求附带 `Cookie: SID=xxx`；403 表示 SID 失效
+- **多 hash 格式**: 批量操作（pause/resume/delete/reannounce）的 hashes 参数以 `|` 分隔拼接
+- **Tracker 过滤**: `getTorrentTrackers` 过滤掉 `tier < 0 && status === 0` 的内部条目
+- **Demo 模式**: `AppStorage('guestMode')` 为 true 时 `DemoDataProvider` 生成模拟数据
+- **断开连接**: `disconnect()` 保留已保存配置；`disconnectAndClear()` 同时清除持久化配置
+- **沉浸式布局**: `EntryAbility` 设置 `setWindowLayoutFullScreen(true)` + 透明背景，状态栏颜色跟随深色模式切换
+
+### AppStorage Keys
+
+| Key | Type | 用途 |
+|-----|------|------|
+| `isConnected` | boolean | 服务器连接状态 |
+| `guestMode` | boolean | 演示模式开关 |
+| `currentTabIndex` | number | 当前 Tab 索引（0=仪表盘, 1=种子列表, 2=设置） |
+| `showRootTabBar` | boolean | Tab 栏显隐（进入详情页时隐藏，带 220ms 延迟恢复） |
+| `torrentListRefreshToken` | number | 种子列表刷新信号（递增触发 `@Watch`） |
+| `downloadTabScrollToTopToken` | number | 下载 Tab 回顶信号 |
+| `rootTabBarReserveHeight` | number | Tab 栏占位高度（供子页面 padding 使用） |
+| `navBlurLevel` | number | 导航栏模糊等级（≥1 使用 COMPONENT_THICK） |
+| `navLowPowerMode` | boolean | 低功耗模式（减少动画和模糊效果） |
+
+### Pages
+
+- **Index.ets**: 主容器 + `AppService` 定义，管理初始化、连接状态、HdsTabs 切换和悬浮 Tab 栏
+- **DashboardPage.ets**: 实时统计仪表盘（传输速度、连接数），轮询刷新
+- **TorrentListPage.ets**: 种子列表，支持 `TorrentFilter`（ALL/DOWNLOADING/COMPLETED/PAUSED/ACTIVE/INACTIVE）筛选/排序/搜索/批量操作
+- **TorrentDetailPage.ets**: 种子详情，多 Tab（信息/文件/Peers/Trackers）
+- **AddTorrentPage.ets**: 添加种子（URL/磁力链接）
+- **ServerConfigPage.ets**: 服务器配置，含记住密码和演示模式入口
+- **SettingsPage.ets**: 应用设置
 
 ## HarmonyOS Development Notes
 
-- Kit 导入方式：`import { ... } from '@kit.xxx'`（如 `@kit.AbilityKit`、`@kit.ArkUI`、`@kit.PerformanceAnalysisKit`）
-- 颜色模式支持：应用默认不设置颜色模式（`COLOR_MODE_NOT_SET`），在 `resources/dark/` 下提供暗色资源
+- Kit 导入：`import { ... } from '@kit.xxx'`（AbilityKit、ArkUI、NetworkKit、PerformanceAnalysisKit、UIDesignKit、ArkData、LocalizationKit）
+- 日志：`hilog`，domain `0x0000`，tag `QbittorrentApp`
+- Release 构建启用代码混淆（属性名、顶层名、文件名、导出名），规则见 `entry/obfuscation-rules.txt`
+- 深色模式：应用默认 `COLOR_MODE_NOT_SET`，深色资源在 `resources/dark/`
 - 项目的 `arkts-syntax-assistant` skill 可辅助 ArkTS 语法、迁移和优化问题

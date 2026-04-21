@@ -18,17 +18,21 @@ export class TorrentInfo {
   uploaded: number = 0;
   downloaded: number = 0;
   amount_left: number = 0;
+  dl_limit: number = 0;
+  ul_limit: number = 0;
 
   isDownloading(): boolean {
     return this.state === 'downloading' || this.state === 'stalledDL' || this.state === 'metaDL' || this.state === 'forcedDL';
   }
 
   isCompleted(): boolean {
-    return this.state === 'uploading' || this.state === 'stalledUP' || this.state === 'forcedUP';
+    return this.state === 'uploading' || this.state === 'stalledUP' || this.state === 'forcedUP' ||
+      this.state === 'stoppedUP';
   }
 
   isPaused(): boolean {
-    return this.state === 'pausedDL' || this.state === 'pausedUP';
+    return this.state === 'pausedDL' || this.state === 'pausedUP' ||
+      this.state === 'stoppedDL' || this.state === 'stoppedUP';
   }
 
   isActive(): boolean {
@@ -46,11 +50,15 @@ export class TorrentInfo {
       'forcedUP': '强制做种',
       'pausedDL': '已暂停',
       'pausedUP': '暂停做种',
+      'stoppedDL': '已暂停',
+      'stoppedUP': '暂停做种',
       'queuedDL': '排队下载',
       'queuedUP': '排队做种',
       'checkingDL': '校验中',
       'checkingUP': '校验做种',
       'checkingResumeData': '校验数据',
+      'allocating': '分配空间',
+      'moving': '移动中',
       'error': '错误',
       'missingFiles': '文件缺失',
       'unknown': '未知'
@@ -79,6 +87,8 @@ export class TorrentInfo {
     t.uploaded = json['uploaded'] as number;
     t.downloaded = json['downloaded'] as number;
     t.amount_left = json['amount_left'] as number;
+    t.dl_limit = typeof json['dl_limit'] === 'number' ? json['dl_limit'] as number : 0;
+    t.ul_limit = typeof json['ul_limit'] === 'number' ? json['ul_limit'] as number : 0;
     return t;
   }
 }

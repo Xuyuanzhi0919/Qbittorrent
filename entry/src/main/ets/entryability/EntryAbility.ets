@@ -27,7 +27,12 @@ export default class EntryAbility extends UIAbility {
   onWindowStageCreate(windowStage: window.WindowStage): void {
     hilog.info(DOMAIN, TAG, 'Ability onWindowStageCreate');
 
-    this.mainWindow = windowStage.getMainWindowSync();
+    try {
+      this.mainWindow = windowStage.getMainWindowSync();
+    } catch (err) {
+      hilog.error(DOMAIN, TAG, 'Failed to get main window: %{public}s', JSON.stringify(err));
+      this.mainWindow = null;
+    }
     this.enableImmersiveLayout();
     this.updateSystemBarColor();
 
@@ -84,6 +89,7 @@ export default class EntryAbility extends UIAbility {
     }
     try {
       this.mainWindow.setWindowLayoutFullScreen(true);
+      this.mainWindow.setWindowBackgroundColor('#00000000');
     } catch (err) {
       hilog.warn(DOMAIN, TAG, 'setWindowLayoutFullScreen failed: %{public}s', JSON.stringify(err));
     }

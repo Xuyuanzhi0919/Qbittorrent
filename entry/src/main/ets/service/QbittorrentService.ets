@@ -4,6 +4,8 @@ import { TorrentInfo } from '../model/TorrentInfo';
 import { TorrentFile } from '../model/TorrentFile';
 import { TorrentTracker } from '../model/TorrentTracker';
 import { TorrentPeer } from '../model/TorrentPeer';
+import { TorrentProperties } from '../model/TorrentProperties';
+import { TorrentPeersSync } from '../model/TorrentPeersSync';
 import { ApiResult } from '../model/ApiResult';
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { AppConstants } from '../common/constants/AppConstants';
@@ -49,11 +51,11 @@ export class QbittorrentService {
     return null;
   }
 
-  async fetchTorrentList(filter?: string, sort?: string): Promise<TorrentInfo[]> {
+  async fetchTorrentList(filter?: string, sort?: string, hashes?: string): Promise<TorrentInfo[]> {
     if (!this.connectionManager.isConnected) {
       return [];
     }
-    const result: ApiResult<TorrentInfo[]> = await this.getApi().getTorrentList(filter, sort);
+    const result: ApiResult<TorrentInfo[]> = await this.getApi().getTorrentList(filter, sort, undefined, hashes);
     if (result.success) {
       return result.data as TorrentInfo[];
     }
@@ -61,11 +63,19 @@ export class QbittorrentService {
     return [];
   }
 
-  async fetchTorrentProperties(hash: string): Promise<Record<string, Object> | null> {
+  async fetchTorrent(hash: string): Promise<TorrentInfo | null> {
+    const torrents: TorrentInfo[] = await this.fetchTorrentList(undefined, undefined, hash);
+    if (torrents.length > 0) {
+      return torrents[0];
+    }
+    return null;
+  }
+
+  async fetchTorrentProperties(hash: string): Promise<TorrentProperties | null> {
     if (!this.connectionManager.isConnected) {
       return null;
     }
-    const result: ApiResult<Record<string, Object>> = await this.getApi().getTorrentProperties(hash);
+    const result: ApiResult<TorrentProperties> = await this.getApi().getTorrentProperties(hash);
     if (result.success) {
       return result.data;
     }
@@ -94,15 +104,15 @@ export class QbittorrentService {
     return [];
   }
 
-  async fetchTorrentPeers(hash: string): Promise<TorrentPeer[]> {
+  async fetchTorrentPeers(hash: string, rid: number = 0): Promise<TorrentPeersSync | null> {
     if (!this.connectionManager.isConnected) {
-      return [];
+      return null;
     }
-    const result: ApiResult<TorrentPeer[]> = await this.getApi().getTorrentPeers(hash);
+    const result: ApiResult<TorrentPeersSync> = await this.getApi().getTorrentPeers(hash, rid);
     if (result.success) {
-      return result.data as TorrentPeer[];
+      return result.data;
     }
-    return [];
+    return null;
   }
 
   async addTorrent(urls: string, savePath?: string, category?: string, tags?: string, paused?: boolean): Promise<boolean> {
@@ -129,11 +139,67 @@ export class QbittorrentService {
     return result.success;
   }
 
+  async reannounceTorrents(hashes: string[]): Promise<boolean> {
+    if (!this.connectionManager.isConnected) {
+      return false;
+    }
+    const result: ApiResult<string> = await this.getApi().reannounceTorrents(hashes);
+    return result.success;
+  }
+
   async deleteTorrents(hashes: string[], deleteFiles: boolean): Promise<boolean> {
     if (!this.connectionManager.isConnected) {
       return false;
     }
     const result: ApiResult<string> = await this.getApi().deleteTorrents(hashes, deleteFiles);
+    return result.success;
+  }
+
+  async setGlobalDownloadLimit(limitBps: number): Promise<boolean> {
+    if (!this.connectionManager.isConnected) {
+      return false;
+    }
+    const result: ApiResult<string> = await this.getApi().setGlobalDownloadLimit(limitBps);
+    return result.success;
+  }
+
+  async setGlobalUploadLimit(limitBps: number): Promise<boolean> {
+    if (!this.connectionManager.isConnected) {
+      return false;
+    }
+    const result: ApiResult<string> = await this.getApi().setGlobalUploadLimit(limitBps);
+    return result.success;
+  }
+
+  async setFilePriority(hash: string, fileId: number, priority: number): Promise<boolean> {
+    if (!this.connectionManager.isConnected) {
+      return false;
+    }
+    const result: ApiResult<string> = await this.getApi().setFilePriority(hash, fileId, priority);
+    return result.success;
+  }
+
+  async setDownloadLimit(hash: string, limitBps: number): Promise<boolean> {
+    if (!this.connectionManager.isConnected) {
+      return false;
+    }
+    const result: ApiResult<string> = await this.getApi().setDownloadLimit(hash, limitBps);
+    return result.success;
+  }
+
+  async setUploadLimit(hash: string, limitBps: number): Promise<boolean> {
+    if (!this.connectionManager.isConnected) {
+      return false;
+    }
+    const result: ApiResult<string> = await this.getApi().setUploadLimit(hash, limitBps);
+    return result.success;
+  }
+
+  async addTorrentFile(filePath: string, fileName: string, savePath?: string, category?: string, tags?: string, paused?: boolean): Promise<boolean> {
+    if (!this.connectionManager.isConnected) {
+      return false;
+    }
+    const result: ApiResult<string> = await this.getApi().addTorrentFile(filePath, fileName, savePath, category, tags, paused);
     return result.success;
   }
 

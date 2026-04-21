@@ -6,11 +6,17 @@ import { TorrentInfo } from '../model/TorrentInfo';
 import { TorrentFile } from '../model/TorrentFile';
 import { TorrentTracker } from '../model/TorrentTracker';
 import { TorrentPeer } from '../model/TorrentPeer';
+import { TorrentProperties } from '../model/TorrentProperties';
+import { TorrentPeersSync } from '../model/TorrentPeersSync';
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { AppConstants } from '../common/constants/AppConstants';
 
 export class QbittorrentApi {
-  private client: HttpClient = HttpClient.getInstance();
+  private client: HttpClient;
+
+  constructor(useSharedClient: boolean = true) {
+    this.client = useSharedClient ? HttpClient.getInstance() : new HttpClient();
+  }
 
   async login(baseUrl: string, username: string, password: string): Promise<ApiResult<string>> {
     this.client.setBaseUrl(baseUrl);
@@ -23,7 +29,10 @@ export class QbittorrentApi {
     if (result.success && result.data === 'Ok.') {
       return ApiResult.ok<string>('登录成功');
     }
-    if (result.success && result.data === 'Fails.') {
+    this.client.clearSid();
+    if (result.success) {
+      // HTTP 200 but response body is not "Ok." — treat as auth failure
+      hilog.warn(AppConstants.LOG_DOMAIN, AppConstants.LOG_TAG, `Login rejected: ${result.data}`);
       return ApiResult.fail<string>('用户名或密码错误');
     }
     return result;
@@ -61,7 +70,7 @@ export class QbittorrentApi {
     }
   }
 
-  async getTorrentList(filter?: string, sort?: string, category?: string): Promise<ApiResult<TorrentInfo[]>> {
+  async getTorrentList(filter?: string, sort?: string, category?: string, hashes?: string): Promise<ApiResult<TorrentInfo[]>> {
     let path: string = QbiApiPaths.TORRENTS_INFO;
     const params: string[] = [];
     if (filter) {
@@ -72,6 +81,9 @@ export class QbittorrentApi {
     }
     if (category) {
       params.push(`category=${encodeURIComponent(category)}`);
+    }
+    if (hashes) {
+      params.push(`hashes=${encodeURIComponent(hashes)}`);
     }
     if (params.length > 0) {
       path += '?' + params.join('&');
@@ -96,17 +108,17 @@ export class QbittorrentApi {
     }
   }
 
-  async getTorrentProperties(hash: string): Promise<ApiResult<Record<string, Object>>> {
+  async getTorrentProperties(hash: string): Promise<ApiResult<TorrentProperties>> {
     const path: string = `${QbiApiPaths.TORRENT_PROPERTIES}?hash=${encodeURIComponent(hash)}`;
     const result: ApiResult<string> = await this.client.get(path);
     if (!result.success) {
-      return ApiResult.fail<Record<string, Object>>(result.error, result.statusCode);
+      return ApiResult.fail<TorrentProperties>(result.error, result.statusCode);
     }
     try {
       const parsed: Record<string, Object> = JSON.parse(result.data as string) as Record<string, Object>;
-      return ApiResult.ok<Record<string, Object>>(parsed);
+      return ApiResult.ok<TorrentProperties>(TorrentProperties.fromJson(parsed));
     } catch (err) {
-      return ApiResult.fail<Record<string, Object>>('解析种子属性失败');
+      return ApiResult.fail<TorrentProperties>('解析种子属性失败');
     }
   }
 
@@ -119,9 +131,15 @@ export class QbittorrentApi {
     try {
       const parsedArray: Object[] = JSON.parse(result.data as string) as Object[];
       const files: TorrentFile[] = [];
+      let arrayIdx: number = 0;
       for (const item of parsedArray) {
         const record: Record<string, Object> = item as Record<string, Object>;
-        files.push(TorrentFile.fromJson(record));
+        const file: TorrentFile = TorrentFile.fromJson(record);
+        if (file.index < 0) {
+          file.index = arrayIdx;
+        }
+        files.push(file);
+        arrayIdx++;
       }
       return ApiResult.ok<TorrentFile[]>(files);
     } catch (err) {
@@ -140,9 +158,9 @@ export class QbittorrentApi {
       const trackers: TorrentTracker[] = [];
       for (const item of parsedArray) {
         const record: Record<string, Object> = item as Record<string, Object>;
-        const url: string = record['url'] as string;
-        // Skip special trackers (** , DHT, PeX, LSD)
-        if (url.startsWith('**')) {
+        const tier: number = record['tier'] as number;
+        const status: number = record['status'] as number;
+        if (tier < 0 && status === 0) {
           continue;
         }
         trackers.push(TorrentTracker.fromJson(record));
@@ -153,24 +171,31 @@ export class QbittorrentApi {
     }
   }
 
-  async getTorrentPeers(hash: string, rid: number = 0): Promise<ApiResult<TorrentPeer[]>> {
+  async getTorrentPeers(hash: string, rid: number = 0): Promise<ApiResult<TorrentPeersSync>> {
     const path: string = `${QbiApiPaths.TORRENT_PEERS}?hash=${encodeURIComponent(hash)}&rid=${rid}`;
     const result: ApiResult<string> = await this.client.get(path);
     if (!result.success) {
-      return ApiResult.fail<TorrentPeer[]>(result.error, result.statusCode);
+      return ApiResult.fail<TorrentPeersSync>(result.error, result.statusCode);
     }
     try {
       const parsed: Record<string, Object> = JSON.parse(result.data as string) as Record<string, Object>;
+      const response: TorrentPeersSync = new TorrentPeersSync();
+      response.rid = parsed['rid'] as number;
+      response.full_update = parsed['full_update'] as boolean;
+      response.show_flags = parsed['show_flags'] as boolean;
       const peersMap: Record<string, Object> = parsed['peers'] as Record<string, Object>;
-      const peers: TorrentPeer[] = [];
       const keys: string[] = Object.keys(peersMap);
       for (const key of keys) {
         const peerRecord: Record<string, Object> = peersMap[key] as Record<string, Object>;
-        peers.push(TorrentPeer.fromJson(peerRecord));
+        response.peers.push(TorrentPeer.fromJson(peerRecord, key));
       }
-      return ApiResult.ok<TorrentPeer[]>(peers);
+      const removed: Object | undefined = parsed['peers_removed'];
+      if (Array.isArray(removed)) {
+        response.peers_removed = removed as string[];
+      }
+      return ApiResult.ok<TorrentPeersSync>(response);
     } catch (err) {
-      return ApiResult.fail<TorrentPeer[]>('解析 Peer 列表失败');
+      return ApiResult.fail<TorrentPeersSync>('解析 Peer 列表失败');
     }
   }
 
@@ -211,11 +236,76 @@ export class QbittorrentApi {
     return await this.client.post(QbiApiPaths.TORRENT_RESUME, params);
   }
 
+  async reannounceTorrents(hashes: string[]): Promise<ApiResult<string>> {
+    const params: Record<string, string> = {
+      'hashes': hashes.join('|'),
+    };
+    return await this.client.post(QbiApiPaths.TORRENT_REANNOUNCE, params);
+  }
+
   async deleteTorrents(hashes: string[], deleteFiles: boolean): Promise<ApiResult<string>> {
     const params: Record<string, string> = {
       'hashes': hashes.join('|'),
       'deleteFiles': deleteFiles ? 'true' : 'false',
     };
     return await this.client.post(QbiApiPaths.TORRENT_DELETE, params);
+  }
+
+  async setGlobalDownloadLimit(limitBps: number): Promise<ApiResult<string>> {
+    const params: Record<string, string> = {};
+    params['limit'] = limitBps.toString();
+    return await this.client.post(QbiApiPaths.TRANSFER_SET_DL_LIMIT, params);
+  }
+
+  async setGlobalUploadLimit(limitBps: number): Promise<ApiResult<string>> {
+    const params: Record<string, string> = {};
+    params['limit'] = limitBps.toString();
+    return await this.client.post(QbiApiPaths.TRANSFER_SET_UL_LIMIT, params);
+  }
+
+  async setFilePriority(hash: string, fileId: number, priority: number): Promise<ApiResult<string>> {
+    const params: Record<string, string> = {
+      'hash': hash,
+      'id': fileId.toString(),
+      'priority': priority.toString(),
+    };
+    return await this.client.post(QbiApiPaths.TORRENT_FILE_PRIO, params);
+  }
+
+  async setDownloadLimit(hash: string, limitBps: number): Promise<ApiResult<string>> {
+    const params: Record<string, string> = {
+      'hashes': hash,
+      'limit': limitBps.toString(),
+    };
+    return await this.client.post(QbiApiPaths.TORRENT_SET_DL_LIMIT, params);
+  }
+
+  async setUploadLimit(hash: string, limitBps: number): Promise<ApiResult<string>> {
+    const params: Record<string, string> = {
+      'hashes': hash,
+      'limit': limitBps.toString(),
+    };
+    return await this.client.post(QbiApiPaths.TORRENT_SET_UL_LIMIT, params);
+  }
+
+  async addTorrentFile(filePath: string, fileName: string, savePath?: string, category?: string, tags?: string, paused?: boolean): Promise<ApiResult<string>> {
+    const params: Record<string, string> = {};
+    if (savePath) {
+      params['savepath'] = savePath;
+    }
+    if (category) {
+      params['category'] = category;
+    }
+    if (tags) {
+      params['tags'] = tags;
+    }
+    if (paused !== undefined) {
+      params['paused'] = paused ? 'true' : 'false';
+    }
+    const result: ApiResult<string> = await this.client.postMultipart(QbiApiPaths.TORRENT_ADD, params, filePath, fileName);
+    if (result.success) {
+      return ApiResult.ok<string>('添加成功');
+    }
+    return result;
   }
 }

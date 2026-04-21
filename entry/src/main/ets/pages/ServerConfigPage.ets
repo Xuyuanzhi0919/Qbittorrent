@@ -9,12 +9,17 @@ export struct ServerConfigPage {
   private connectionManager: ConnectionManager = AppService.getConnectionManager();
   private store: PreferencesStore = PreferencesStore.getInstance();
   @StorageLink('isConnected') isConnected: boolean = false;
+  @StorageLink('guestMode') guestMode: boolean = false;
   @State serverUrl: string = '';
   @State username: string = '';
   @State password: string = '';
   @State rememberPassword: boolean = true;
   @State isLoading: boolean = false;
   @State errorMessage: string = '';
+  @State heroVisible: boolean = false;
+  @State formVisible: boolean = false;
+  @State actionVisible: boolean = false;
+  @State decorAnimated: boolean = false;
   private pathStack: NavPathStack = new NavPathStack();
 
   async aboutToAppear(): Promise<void> {
@@ -37,6 +42,22 @@ export struct ServerConfigPage {
         hilog.info(AppConstants.LOG_DOMAIN, AppConstants.LOG_TAG, 'ServerConfigPage: password not loaded (rememberPassword=false)');
       }
     }
+
+    setTimeout(() => {
+      this.heroVisible = true;
+    }, 0);
+    setTimeout(() => {
+      this.formVisible = true;
+    }, 120);
+    setTimeout(() => {
+      this.actionVisible = true;
+    }, 220);
+    setTimeout(() => {
+      this.decorAnimated = true;
+    }, 0);
+  }
+
+  aboutToDisappear(): void {
   }
 
   private async handleConnect(): Promise<void> {
@@ -74,23 +95,95 @@ export struct ServerConfigPage {
 
     if (result.success) {
       this.isConnected = true;
+      this.guestMode = false;
       hilog.info(AppConstants.LOG_DOMAIN, AppConstants.LOG_TAG,
-        'ServerConfigPage: connection successful, navigating to Dashboard');
-      // 关键：登录成功后触发页面跳转
-      this.pathStack.replacePath({ name: 'Dashboard' });
+        'ServerConfigPage: connection successful');
+      // 连接成功后返回主页
+      this.pathStack.clear();
     } else {
+      this.isConnected = this.connectionManager.isConnected;
       this.errorMessage = result.error || '连接失败';
       hilog.error(AppConstants.LOG_DOMAIN, AppConstants.LOG_TAG,
         `ServerConfigPage: connection failed: ${this.errorMessage}`);
     }
   }
 
+  private enterDemoMode(): void {
+    this.errorMessage = '';
+    this.isConnected = false;
+    this.guestMode = true;
+    AppStorage.setOrCreate('currentTabIndex', 0);
+  }
+
   build() {
     NavDestination() {
       Stack() {
+        Circle()
+          .width(260)
+          .height(260)
+          .fill($r('app.color.login_decor_primary'))
+          .opacity(this.decorAnimated ? 0.95 : 0.78)
+          .position({ x: 248, y: -72 })
+          .translate({
+            x: this.decorAnimated ? -12 : 0,
+            y: this.decorAnimated ? 18 : 0
+          })
+          .scale({
+            x: this.decorAnimated ? 1.06 : 1,
+            y: this.decorAnimated ? 1.06 : 1
+          })
+          .animation({
+            duration: 3600,
+            curve: Curve.EaseInOut,
+            iterations: -1,
+            playMode: PlayMode.Alternate
+          })
+
+        Circle()
+          .width(220)
+          .height(220)
+          .fill($r('app.color.login_decor_secondary'))
+          .opacity(this.decorAnimated ? 0.74 : 0.58)
+          .position({ x: -64, y: 620 })
+          .translate({
+            x: this.decorAnimated ? 14 : 0,
+            y: this.decorAnimated ? -12 : 0
+          })
+          .scale({
+            x: this.decorAnimated ? 1.04 : 1,
+            y: this.decorAnimated ? 1.04 : 1
+          })
+          .animation({
+            duration: 4200,
+            curve: Curve.EaseInOut,
+            iterations: -1,
+            playMode: PlayMode.Alternate
+          })
+
+        Circle()
+          .width(120)
+          .height(120)
+          .fill($r('app.color.login_decor_tertiary'))
+          .opacity(this.decorAnimated ? 0.98 : 0.88)
+          .position({ x: 36, y: 118 })
+          .translate({
+            x: this.decorAnimated ? 10 : 0,
+            y: this.decorAnimated ? 8 : 0
+          })
+          .scale({
+            x: this.decorAnimated ? 1.08 : 1,
+            y: this.decorAnimated ? 1.08 : 1
+          })
+          .animation({
+            duration: 3000,
+            curve: Curve.EaseInOut,
+            iterations: -1,
+            playMode: PlayMode.Alternate
+          })
+
         Column({ space: 24 }) {
           Column({ space: 8 }) {
-            Text('连接 qBittorrent')
+            Text('连接 TorrentPilot')
               .fontSize(30)
               .fontWeight(FontWeight.Bold)
               .fontColor($r('app.color.text_primary'))
@@ -101,6 +194,12 @@ export struct ServerConfigPage {
           }
           .width('100%')
           .alignItems(HorizontalAlign.Center)
+          .opacity(this.heroVisible ? 1 : 0)
+          .translate({ y: this.heroVisible ? 0 : 18 })
+          .animation({
+            duration: 450,
+            curve: Curve.EaseOut
+          })
 
           Column({ space: 14 }) {
             Column({ space: 6 }) {
@@ -113,7 +212,11 @@ export struct ServerConfigPage {
                 .placeholderColor($r('app.color.text_hint'))
                 .fontColor($r('app.color.text_primary'))
                 .caretColor($r('app.color.accent_color'))
-                .backgroundColor('#F7FAFF')
+                .backgroundColor($r('app.color.login_input_background'))
+                .border({
+                  width: 1,
+                  color: $r('app.color.login_input_border')
+                })
                 .borderRadius(16)
                 .height(54)
                 .padding({ left: 16, right: 16 })
@@ -133,7 +236,11 @@ export struct ServerConfigPage {
                 .placeholderColor($r('app.color.text_hint'))
                 .fontColor($r('app.color.text_primary'))
                 .caretColor($r('app.color.accent_color'))
-                .backgroundColor('#F7FAFF')
+                .backgroundColor($r('app.color.login_input_background'))
+                .border({
+                  width: 1,
+                  color: $r('app.color.login_input_border')
+                })
                 .borderRadius(16)
                 .height(54)
                 .padding({ left: 16, right: 16 })
@@ -155,7 +262,11 @@ export struct ServerConfigPage {
                 .placeholderColor($r('app.color.text_hint'))
                 .fontColor($r('app.color.text_primary'))
                 .caretColor($r('app.color.accent_color'))
-                .backgroundColor('#F7FAFF')
+                .backgroundColor($r('app.color.login_input_background'))
+                .border({
+                  width: 1,
+                  color: $r('app.color.login_input_border')
+                })
                 .borderRadius(16)
                 .height(54)
                 .padding({ left: 16, right: 16 })
@@ -193,7 +304,7 @@ export struct ServerConfigPage {
               }
               .width('100%')
               .padding({ left: 14, right: 14, top: 12, bottom: 12 })
-              .backgroundColor('#FFF4F2')
+              .backgroundColor($r('app.color.login_error_background'))
               .borderRadius(14)
             }
           }
@@ -207,33 +318,72 @@ export struct ServerConfigPage {
             offsetX: 0,
             offsetY: 12
           })
+          .opacity(this.formVisible ? 1 : 0)
+          .translate({ y: this.formVisible ? 0 : 28 })
+          .scale({
+            x: this.formVisible ? 1 : 0.97,
+            y: this.formVisible ? 1 : 0.97
+          })
+          .animation({
+            duration: 500,
+            curve: Curve.EaseOut
+          })
 
-          Button(this.isLoading ? '正在连接...' : '连接服务器')
+          Column({ space: 12 }) {
+            Row({ space: 10 }) {
+              Button(this.isLoading ? '正在连接...' : '连接服务器')
+                .layoutWeight(1)
+                .height(56)
+                .backgroundColor($r('app.color.accent_color'))
+                .borderRadius(18)
+                .fontSize(16)
+                .fontColor('#FFFFFF')
+                .enabled(!this.isLoading)
+                .opacity(this.isLoading ? 0.6 : 1)
+                .onClick(() => {
+                  this.handleConnect();
+                })
+
+              Button('示例体验')
+                .layoutWeight(1)
+                .height(56)
+                .backgroundColor($r('app.color.login_secondary_button_bg'))
+                .borderRadius(18)
+                .border({
+                  width: 1,
+                  color: $r('app.color.login_secondary_button_border')
+                })
+                .fontSize(16)
+                .fontColor($r('app.color.accent_color'))
+                .enabled(!this.isLoading)
+                .opacity(this.isLoading ? 0.6 : 1)
+                .onClick(() => {
+                  this.enterDemoMode();
+                })
+            }
             .width('100%')
-            .height(56)
-            .backgroundColor($r('app.color.accent_color'))
-            .borderRadius(18)
-            .fontSize(16)
-            .fontColor('#FFFFFF')
-            .enabled(!this.isLoading)
-            .opacity(this.isLoading ? 0.6 : 1)
-            .onClick(() => {
-              this.handleConnect();
-            })
-          
-          Column({ space: 8 }) {
-            Text('支持保存连接信息，下次可直接进入仪表盘。')
-              .fontSize(12)
-              .fontColor($r('app.color.text_secondary'))
-              .textAlign(TextAlign.Center)
 
-            Text('请确保 qBittorrent Web UI 已启用')
-              .fontSize(12)
-              .fontColor($r('app.color.text_hint'))
-              .textAlign(TextAlign.Center)
+            Column({ space: 8 }) {
+              Text('支持保存连接信息，也可以先浏览示例界面。')
+                .fontSize(12)
+                .fontColor($r('app.color.text_secondary'))
+                .textAlign(TextAlign.Center)
+
+              Text('示例体验为只读浏览，不会连接真实服务器')
+                .fontSize(12)
+                .fontColor($r('app.color.text_hint'))
+                .textAlign(TextAlign.Center)
+            }
+            .width('100%')
+            .alignItems(HorizontalAlign.Center)
           }
           .width('100%')
-          .alignItems(HorizontalAlign.Center)
+          .opacity(this.actionVisible ? 1 : 0)
+          .translate({ y: this.actionVisible ? 0 : 20 })
+          .animation({
+            duration: 520,
+            curve: Curve.EaseOut
+          })
         }
         .width('100%')
         .height('100%')
@@ -249,9 +399,7 @@ export struct ServerConfigPage {
     .hideBackButton(true)
     .onReady((context: NavDestinationContext) => {
       this.pathStack = context.pathStack;
-      if (this.connectionManager.isConnected) {
-        this.pathStack.replacePath({ name: 'Dashboard' });
-      }
+      // 已连接状态下也可以编辑配置，不再自动跳转到 Dashboard
     })
   }
 }

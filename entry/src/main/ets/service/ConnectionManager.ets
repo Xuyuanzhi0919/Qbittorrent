@@ -31,6 +31,18 @@ export class ConnectionManager {
 
   async connect(url: string, username: string, password: string, rememberPassword: boolean = true): Promise<ApiResult<string>> {
     hilog.info(AppConstants.LOG_DOMAIN, AppConstants.LOG_TAG, `Connecting to ${url}`);
+    if (this._isConnected) {
+      const validationApi: QbittorrentApi = new QbittorrentApi(false);
+      const validationResult: ApiResult<string> = await validationApi.login(url, username, password);
+      if (!validationResult.success) {
+        hilog.error(AppConstants.LOG_DOMAIN, AppConstants.LOG_TAG, `Connection validation failed: ${validationResult.error}`);
+        return validationResult;
+      }
+      await validationApi.logout();
+      await this.api.logout();
+      this._isConnected = false;
+      this.currentConfig = null;
+    }
     const result: ApiResult<string> = await this.api.login(url, username, password);
     if (result.success) {
       this._isConnected = true;
@@ -43,6 +55,7 @@ export class ConnectionManager {
       hilog.info(AppConstants.LOG_DOMAIN, AppConstants.LOG_TAG, `Connected successfully, rememberPassword=${rememberPassword}`);
     } else {
       this._isConnected = false;
+      this.currentConfig = null;
       hilog.error(AppConstants.LOG_DOMAIN, AppConstants.LOG_TAG, `Connection failed: ${result.error}`);
     }
     return result;
@@ -71,8 +84,16 @@ export class ConnectionManager {
     await this.api.logout();
     this._isConnected = false;
     this.currentConfig = null;
+    // 断开连接时不清除保存的配置，用户下次可以直接重连
+    hilog.info(AppConstants.LOG_DOMAIN, AppConstants.LOG_TAG, 'Disconnected (config preserved)');
+  }
+
+  async disconnectAndClear(): Promise<void> {
+    await this.api.logout();
+    this._isConnected = false;
+    this.currentConfig = null;
     await this.store.clearServerConfig();
-    hilog.info(AppConstants.LOG_DOMAIN, AppConstants.LOG_TAG, 'Disconnected');
+    hilog.info(AppConstants.LOG_DOMAIN, AppConstants.LOG_TAG, 'Disconnected and config cleared');
   }
 
   getApi(): QbittorrentApi {
