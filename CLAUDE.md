@@ -15,6 +15,13 @@ HarmonyOS (鸿蒙) ArkTS 应用，bundleName `com.movie.qbittorrent`，对外显
 - **代码检查**: `code-linter`（规则见 `code-linter.json5`：`@performance/recommended`、`@typescript-eslint/recommended` 以及多项 `@security` 规则）
 - **测试框架**: `@ohos/hypium`；单元测试 `entry/src/test/`，仪器测试 `entry/src/ohosTest/`
 
+## Coding Conventions
+
+- ArkTS：显式类型，优先 `const`，不用 `any`/`unknown`；JSON 解析固定用 `Record<string, Object>`
+- 缩进：`.ets` 和 `.json5` 均为 2 空格
+- 命名：页面、组件、模型用 PascalCase（`TorrentDetailPage.ets`、`ProgressBar.ets`）
+- 提交信息：Conventional Commits 风格，前缀 `feat:`、`fix:`、`chore:`、`test:`，简短祈使句
+
 ## Architecture
 
 ### Layered Structure
@@ -42,15 +49,25 @@ mock/            → Demo 模式数据生成器 DemoDataProvider
 - **Service 单例**: `HttpClient`、`PreferencesStore` 使用 `static getInstance()`；`ConnectionManager` 由 `AppService` 懒加载持有
 - **PreferencesStore 初始化**: 必须在 `EntryAbility.onCreate()` 中调用 `PreferencesStore.getInstance().init(context)`；其他调用者通过 `waitForInit()` 等待（轮询最多 5 秒）
 - **状态管理**: 全局状态 `AppStorage` + `@StorageLink`；页面级状态 `@State`
-- **导航**: 仅 `pages/Index` 注册于 `main_pages.json`；子页面（ServerConfig、TorrentDetail、AddTorrent）通过 `AppService.pushPage()` 压入 `NavPathStack`
+- **导航**: 仅 `pages/Index` 注册于 `main_pages.json`；子页面通过 `AppService.pushPage()` 压入 `NavPathStack`，命名路由见下表
 - **Tab 导航**: `HdsTabs`（`@kit.UIDesignKit`）隐藏内置 bar，自定义悬浮胶囊 Tab 栏，`AppStorage('currentTabIndex')` 控制；再次点击当前 Tab（下载列表）触发回顶信号
 - **API 响应封装**: `ApiResult<T>` 统一包装，含 `success`、`data`、`error`、`statusCode`
-- **认证流程**: `postForLogin` 从响应头提取 SID cookie，后续请求附带 `Cookie: SID=xxx`；403 表示 SID 失效
-- **多 hash 格式**: 批量操作（pause/resume/delete/reannounce）的 hashes 参数以 `|` 分隔拼接
+- **认证流程**: `postForLogin` 从响应头提取 SID cookie，后续请求附带 `Cookie: SID=xxx`；403 表示 SID 失效；自动重连要求已保存密码（空密码跳过）
+- **多 hash 格式**: 批量操作（pause/resume/delete/reannounce/setCategory）的 hashes 参数以 `|` 分隔；`removeCategories` 例外，用 `\n` 分隔
 - **Tracker 过滤**: `getTorrentTrackers` 过滤掉 `tier < 0 && status === 0` 的内部条目
 - **Demo 模式**: `AppStorage('guestMode')` 为 true 时 `DemoDataProvider` 生成模拟数据
 - **断开连接**: `disconnect()` 保留已保存配置；`disconnectAndClear()` 同时清除持久化配置
-- **沉浸式布局**: `EntryAbility` 设置 `setWindowLayoutFullScreen(true)` + 透明背景，状态栏颜色跟随深色模式切换
+- **沉浸式布局**: `EntryAbility` 设置 `setWindowLayoutFullScreen(true)` + 透明背景，状态栏颜色跟随深色模式切换（`onConfigurationChange` 触发）
+- **底部 Sheet 与 Tab 栏**: 任意 bottom sheet 打开时，`onAnySheetChanged()` 将 `showRootTabBar` 置 false 隐藏 Tab 栏；关闭时恢复
+- **下载完成通知**: `QbittorrentService` 在每次全量轮询（无 filter/hashes 参数）时调用 `checkAndNotifyCompletions`，通过 `@kit.NotificationKit` 推送；权限申请在 `EntryAbility.onWindowStageCreate` 中发起
+
+### NavPathStack 命名路由
+
+| 路由名 | 目标页面 | 参数 |
+|--------|----------|------|
+| `ServerConfig` | `ServerConfigPage` | 无 |
+| `TorrentDetail` | `TorrentDetailPage` | `string`（torrentHash） |
+| `AddTorrent` | `AddTorrentPage` | 无 |
 
 ### AppStorage Keys
 
@@ -72,13 +89,13 @@ mock/            → Demo 模式数据生成器 DemoDataProvider
 - **DashboardPage.ets**: 实时统计仪表盘（传输速度、连接数），轮询刷新
 - **TorrentListPage.ets**: 种子列表，支持 `TorrentFilter`（ALL/DOWNLOADING/COMPLETED/PAUSED/ACTIVE/INACTIVE）筛选/排序/搜索/批量操作
 - **TorrentDetailPage.ets**: 种子详情，多 Tab（信息/文件/Peers/Trackers）
-- **AddTorrentPage.ets**: 添加种子（URL/磁力链接）
+- **AddTorrentPage.ets**: 添加种子（URL/磁力链接或 `.torrent` 文件，文件上传走 multipart POST）
 - **ServerConfigPage.ets**: 服务器配置，含记住密码和演示模式入口
 - **SettingsPage.ets**: 应用设置
 
 ## HarmonyOS Development Notes
 
-- Kit 导入：`import { ... } from '@kit.xxx'`（AbilityKit、ArkUI、NetworkKit、PerformanceAnalysisKit、UIDesignKit、ArkData、LocalizationKit）
+- Kit 导入：`import { ... } from '@kit.xxx'`（AbilityKit、ArkUI、NetworkKit、PerformanceAnalysisKit、UIDesignKit、ArkData、LocalizationKit、NotificationKit）
 - 日志：`hilog`，domain `0x0000`，tag `QbittorrentApp`
 - Release 构建启用代码混淆（属性名、顶层名、文件名、导出名），规则见 `entry/obfuscation-rules.txt`
 - 深色模式：应用默认 `COLOR_MODE_NOT_SET`，深色资源在 `resources/dark/`
