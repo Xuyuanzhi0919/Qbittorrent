@@ -30,7 +30,8 @@ export struct DashboardPage {
   @State totalDownloadedBytes: number = 0;
   @State sessionSeconds: number = 0;
   @State actionMessage: string = '';
-  @State waveOffset: boolean = false;
+  @State wave1X: number = 16;
+  @State wave2X: number = -16;
   @State @Watch('onAnySheetChanged') pendingDeleteHash: string = '';
   @State expandedTaskHash: string = '';
   @State @Watch('onAnySheetChanged') showGlobalLimitSheet: boolean = false;
@@ -52,7 +53,22 @@ export struct DashboardPage {
     this.service = AppService.getService();
     this.sessionStartTime = Date.now();
     setTimeout(() => {
-      this.waveOffset = true;
+      animateTo({
+        duration: 5200,
+        curve: Curve.EaseInOut,
+        iterations: -1,
+        playMode: PlayMode.Alternate
+      }, () => {
+        this.wave1X = -52;
+      });
+      animateTo({
+        duration: 3900,
+        curve: Curve.EaseInOut,
+        iterations: -1,
+        playMode: PlayMode.Alternate
+      }, () => {
+        this.wave2X = 40;
+      });
     }, 300);
     if (this.guestMode) {
       this.loadGuestDemoData();
@@ -865,25 +881,13 @@ export struct DashboardPage {
             .height(48)
             .backgroundColor('#3D2563EB')
             .borderRadius({ topLeft: 160, topRight: 48 })
-            .translate({ x: this.waveOffset ? -52 : 16 })
-            .animation({
-              duration: 5200,
-              curve: Curve.EaseInOut,
-              iterations: -1,
-              playMode: PlayMode.Alternate
-            })
+            .translate({ x: this.wave1X })
           Row()
             .width('130%')
             .height(30)
             .backgroundColor('#2D16A34A')
             .borderRadius({ topLeft: 48, topRight: 140 })
-            .translate({ x: this.waveOffset ? 40 : -16 })
-            .animation({
-              duration: 3900,
-              curve: Curve.EaseInOut,
-              iterations: -1,
-              playMode: PlayMode.Alternate
-            })
+            .translate({ x: this.wave2X })
         }
         .width('100%')
         .height(48)
