@@ -8,6 +8,79 @@ import { AppService } from './Index';
 import { DemoDataProvider } from '../mock/DemoDataProvider';
 
 @Component
+struct WaveCanvas {
+  private settings: RenderingContextSettings = new RenderingContextSettings(true);
+  private ctx: CanvasRenderingContext2D = new CanvasRenderingContext2D(this.settings);
+  private timer: number = -1;
+  private offset1: number = 0;
+  private offset2: number = 0;
+  private canvasW: number = 0;
+  private canvasH: number = 0;
+
+  aboutToDisappear(): void {
+    if (this.timer !== -1) {
+      clearInterval(this.timer);
+      this.timer = -1;
+    }
+  }
+
+  private draw(): void {
+    if (this.canvasW <= 0) {
+      return;
+    }
+    this.ctx.clearRect(0, 0, this.canvasW, this.canvasH);
+    const period: number = this.canvasW * 0.85;
+    this.offset1 = (this.offset1 + 1.8) % period;
+    this.offset2 = (this.offset2 + 1.1) % period;
+    this.drawWave(this.offset1, period, 'rgba(37,99,235,0.22)', 0);
+    this.drawWave(this.offset2, period, 'rgba(22,163,74,0.15)', -6);
+  }
+
+  private drawWave(offset: number, period: number, color: string, yOff: number): void {
+    const w: number = this.canvasW;
+    const h: number = this.canvasH;
+    const amp: number = 7;
+    const baseline: number = h * 0.42 + yOff;
+
+    this.ctx.beginPath();
+    let x: number = -(period * 2) + (offset % period);
+    this.ctx.moveTo(x, baseline);
+    while (x < w + period) {
+      this.ctx.quadraticCurveTo(x + period * 0.25, baseline - amp, x + period * 0.5, baseline);
+      this.ctx.quadraticCurveTo(x + period * 0.75, baseline + amp, x + period, baseline);
+      x += period;
+    }
+    this.ctx.lineTo(w + 1, h + 1);
+    this.ctx.lineTo(-1, h + 1);
+    this.ctx.closePath();
+    this.ctx.fillStyle = color;
+    this.ctx.fill();
+  }
+
+  build() {
+    Canvas(this.ctx)
+      .width('100%')
+      .height(52)
+      .onReady(() => {
+        if (this.timer === -1 && this.canvasW > 0) {
+          this.timer = setInterval(() => {
+            this.draw();
+          }, 16);
+        }
+      })
+      .onAreaChange((_old: Area, newV: Area) => {
+        this.canvasW = newV.width as number;
+        this.canvasH = newV.height as number;
+        if (this.timer === -1) {
+          this.timer = setInterval(() => {
+            this.draw();
+          }, 16);
+        }
+      })
+  }
+}
+
+@Component
 export struct DashboardPage {
   @StorageLink('guestMode') guestMode: boolean = false;
   @StorageLink('rootTabBarReserveHeight') rootTabBarReserveHeight: number = 0;
@@ -30,8 +103,6 @@ export struct DashboardPage {
   @State totalDownloadedBytes: number = 0;
   @State sessionSeconds: number = 0;
   @State actionMessage: string = '';
-  @State wave1X: number = 16;
-  @State wave2X: number = -16;
   @State @Watch('onAnySheetChanged') pendingDeleteHash: string = '';
   @State expandedTaskHash: string = '';
   @State @Watch('onAnySheetChanged') showGlobalLimitSheet: boolean = false;
@@ -52,24 +123,6 @@ export struct DashboardPage {
   aboutToAppear(): void {
     this.service = AppService.getService();
     this.sessionStartTime = Date.now();
-    setTimeout(() => {
-      animateTo({
-        duration: 5200,
-        curve: Curve.EaseInOut,
-        iterations: -1,
-        playMode: PlayMode.Alternate
-      }, () => {
-        this.wave1X = -52;
-      });
-      animateTo({
-        duration: 3900,
-        curve: Curve.EaseInOut,
-        iterations: -1,
-        playMode: PlayMode.Alternate
-      }, () => {
-        this.wave2X = 40;
-      });
-    }, 300);
     if (this.guestMode) {
       this.loadGuestDemoData();
       this.startAutoRefresh();
@@ -875,23 +928,7 @@ export struct DashboardPage {
       .padding({ left: 18, right: 18, top: 18, bottom: this.isLoading ? 18 : 12 })
 
       if (!this.isLoading) {
-        Stack({ alignContent: Alignment.Bottom }) {
-          Row()
-            .width('150%')
-            .height(48)
-            .backgroundColor('#3D2563EB')
-            .borderRadius({ topLeft: 160, topRight: 48 })
-            .translate({ x: this.wave1X })
-          Row()
-            .width('130%')
-            .height(30)
-            .backgroundColor('#2D16A34A')
-            .borderRadius({ topLeft: 48, topRight: 140 })
-            .translate({ x: this.wave2X })
-        }
-        .width('100%')
-        .height(48)
-        .clip(true)
+        WaveCanvas()
       }
     }
     .width('100%')
