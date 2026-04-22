@@ -12,13 +12,14 @@ export struct SettingsPage {
   @StorageLink('isConnected') isConnected: boolean = false;
   @StorageLink('guestMode') guestMode: boolean = false;
   @StorageLink('rootTabBarReserveHeight') rootTabBarReserveHeight: number = 0;
-@State serverUrl: string = '';
+  @State serverUrl: string = '';
   @State serverUsername: string = '';
   @State pollingInterval: number = AppConstants.DEFAULT_POLLING_INTERVAL;
   @State isDisconnecting: boolean = false;
   @State actionMessage: string = '';
-  @State showDisconnectConfirm: boolean = false;
+  @State @Watch('onAnySheetChanged') showDisconnectConfirm: boolean = false;
   private actionMessageTimer: number = -1;
+  private readonly pollingOptions: number[] = [1000, 2000, 5000, 10000];
 
   async aboutToAppear(): Promise<void> {
     if (this.guestMode) {
@@ -43,6 +44,11 @@ export struct SettingsPage {
       clearTimeout(this.actionMessageTimer);
       this.actionMessageTimer = -1;
     }
+    AppStorage.setOrCreate('showRootTabBar', true);
+  }
+
+  private onAnySheetChanged(): void {
+    AppStorage.setOrCreate('showRootTabBar', !this.showDisconnectConfirm);
   }
 
   private async handleDisconnect(): Promise<void> {
@@ -79,22 +85,7 @@ export struct SettingsPage {
   }
 
   private getPollingLabel(): string {
-    return `${Math.floor(this.pollingInterval / 1000)} 秒同步`;
-  }
-
-  private getServerSummaryText(): string {
-    const url: string = this.serverUrl.trim();
-    const username: string = this.serverUsername.trim();
-    if (url.length === 0 && username.length === 0) {
-      return this.guestMode ? '演示节点 · demo.operator' : '尚未配置服务器';
-    }
-    if (url.length === 0) {
-      return username;
-    }
-    if (username.length === 0) {
-      return url;
-    }
-    return `${url} · ${username}`;
+    return `${Math.floor(this.pollingInterval / 1000)} 秒`;
   }
 
   private getServerAddressText(): string {
@@ -122,40 +113,61 @@ export struct SettingsPage {
     }, 2200);
   }
 
+  private getStatusColor(): Resource {
+    if (this.guestMode) {
+      return $r('app.color.accent_color');
+    }
+    return this.isConnected ? $r('app.color.success_color') : $r('app.color.error_color');
+  }
+
+  private getStatusBgColor(): Resource {
+    if (this.guestMode) {
+      return $r('app.color.dashboard_surface_info');
+    }
+    return this.isConnected ? $r('app.color.dashboard_surface_success') : $r('app.color.dashboard_surface_danger');
+  }
+
+  private getStatusText(): string {
+    if (this.guestMode) {
+      return '示例体验';
+    }
+    return this.isConnected ? '已连接' : '未连接';
+  }
+
   build() {
     Stack() {
-      Circle()
-        .width(228)
-        .height(228)
-        .fill($r('app.color.dashboard_decor_primary'))
-        .opacity(0.9)
-        .position({ x: 254, y: -76 })
-
-      Circle()
-        .width(172)
-        .height(172)
-        .fill($r('app.color.dashboard_decor_secondary'))
-        .opacity(0.96)
-        .position({ x: -52, y: 90 })
-
       Scroll() {
-        Column({ space: 12 }) {
+        Column({ space: 0 }) {
           if (this.actionMessage.length > 0) {
             this.actionBanner()
           }
+
           this.headerSection()
-          this.serverSummaryBar()
-          this.connectionCard()
-          this.refreshCard()
-          this.aboutCard()
-          this.disconnectButton()
+
+          this.statusCard()
+
+          this.sectionLabel('连接配置')
+          this.connectionGroup()
+
+          this.sectionLabel('轮询频率')
+          this.pollingGroup()
+
+          this.sectionLabel('关于')
+          this.aboutGroup()
+
+          this.disconnectArea()
+
+          Blank().height(this.rootTabBarReserveHeight + 14)
         }
         .width('100%')
-        .padding({ left: 20, right: 20, top: 62, bottom: this.rootTabBarReserveHeight + 14 })
+        .padding({ left: 20, right: 20, top: 62 })
       }
       .scrollBar(BarState.Off)
+      .edgeEffect(EdgeEffect.Spring)
       .width('100%')
       .height('100%')
+      .blur(this.showDisconnectConfirm ? 16 : 0)
+      .animation({ duration: 220, curve: Curve.EaseOut })
 
       if (this.showDisconnectConfirm) {
         this.disconnectConfirmDialog()
@@ -167,15 +179,13 @@ export struct SettingsPage {
   }
 
   @Builder
-  private actionBanner() {
+  actionBanner() {
     Row() {
       Text(this.actionMessage)
         .fontSize(12)
         .fontWeight(FontWeight.Medium)
         .fontColor($r('app.color.text_primary'))
-
       Blank()
-
       Text('关闭')
         .fontSize(11)
         .fontWeight(FontWeight.Medium)
@@ -187,261 +197,284 @@ export struct SettingsPage {
     .width('100%')
     .padding({ left: 12, right: 12, top: 10, bottom: 10 })
     .backgroundColor($r('app.color.card_background'))
-    .border({
-      width: 1,
-      color: $r('app.color.dashboard_border')
-    })
+    .border({ width: 1, color: $r('app.color.dashboard_border') })
     .borderRadius(16)
+    .margin({ bottom: 12 })
   }
 
   @Builder
-  private headerSection() {
+  headerSection() {
     Column({ space: 4 }) {
-      Text('DOWNLOAD CENTER')
+      Text('PREFERENCES')
         .fontSize(12)
         .fontWeight(FontWeight.Medium)
         .letterSpacing(1)
         .fontColor($r('app.color.text_secondary'))
-
       Text('设置中心')
         .fontSize(28)
         .fontWeight(FontWeight.Bold)
+        .letterSpacing(-0.5)
         .fontColor($r('app.color.text_primary'))
     }
     .width('100%')
     .alignItems(HorizontalAlign.Start)
+    .margin({ bottom: 20 })
   }
 
   @Builder
-  private serverSummaryBar() {
+  statusCard() {
     Row() {
-      Column({ space: 4 }) {
-        Text('当前服务节点')
-          .fontSize(11)
-          .fontWeight(FontWeight.Medium)
-          .fontColor($r('app.color.text_secondary'))
+      Column({ space: 6 }) {
+        Row({ space: 8 }) {
+          Row()
+            .width(8)
+            .height(8)
+            .backgroundColor(this.getStatusColor())
+            .borderRadius(999)
+          Text(this.getStatusText())
+            .fontSize(12)
+            .fontWeight(FontWeight.Bold)
+            .fontColor(this.getStatusColor())
+        }
+        .padding({ left: 10, right: 10, top: 5, bottom: 5 })
+        .backgroundColor(this.getStatusBgColor())
+        .borderRadius(999)
 
-        Text(this.getServerSummaryText())
+        Text(this.getServerAddressText())
           .fontSize(14)
           .fontWeight(FontWeight.Bold)
           .fontColor($r('app.color.text_primary'))
           .maxLines(1)
           .textOverflow({ overflow: TextOverflow.Ellipsis })
+          .width('100%')
+
+        Text(this.guestMode ? '演示模式' : (this.serverUsername.length > 0 ? `账户：${this.serverUsername}` : '未配置账户'))
+          .fontSize(12)
+          .fontColor($r('app.color.text_secondary'))
       }
       .layoutWeight(1)
       .alignItems(HorizontalAlign.Start)
 
-      Column({ space: 6 }) {
-        Text(this.isConnected ? '已连接' : (this.guestMode ? '示例体验' : '未连接'))
-          .fontSize(11)
-          .fontWeight(FontWeight.Bold)
-          .fontColor(this.isConnected ? $r('app.color.success_color') : (this.guestMode ? $r('app.color.accent_color') : $r('app.color.error_color')))
-          .padding({ left: 10, right: 10, top: 6, bottom: 6 })
-          .backgroundColor(this.isConnected ? $r('app.color.dashboard_surface_success') : (this.guestMode ? $r('app.color.dashboard_surface_info') : $r('app.color.dashboard_surface_danger')))
-          .borderRadius(999)
-
-        Text(this.getPollingLabel())
-          .fontSize(11)
-          .fontWeight(FontWeight.Bold)
-          .fontColor($r('app.color.accent_color'))
-      }
-      .alignItems(HorizontalAlign.End)
+      Text('管理连接')
+        .fontSize(12)
+        .fontWeight(FontWeight.Medium)
+        .fontColor($r('app.color.accent_color'))
+        .padding({ left: 14, right: 14, top: 8, bottom: 8 })
+        .backgroundColor($r('app.color.dashboard_surface_info'))
+        .borderRadius(999)
+        .onClick(() => {
+          this.openServerConfig();
+        })
     }
     .width('100%')
-    .padding({ left: 14, right: 14, top: 12, bottom: 12 })
+    .padding({ left: 16, right: 16, top: 16, bottom: 16 })
     .backgroundColor($r('app.color.card_background'))
+    .border({ width: 1, color: $r('app.color.dashboard_border') })
     .borderRadius(20)
-    .border({
-      width: 1,
-      color: $r('app.color.dashboard_border')
-    })
+    .alignItems(VerticalAlign.Center)
+    .margin({ bottom: 20 })
   }
 
   @Builder
-  private connectionCard() {
-    Column({ space: 10 }) {
-      Row() {
-        Column({ space: 4 }) {
-          Text('连接与账户')
-            .fontSize(16)
-            .fontWeight(FontWeight.Bold)
-            .fontColor($r('app.color.text_primary'))
+  sectionLabel(label: string) {
+    Text(label)
+      .fontSize(12)
+      .fontWeight(FontWeight.Medium)
+      .fontColor($r('app.color.text_secondary'))
+      .width('100%')
+      .padding({ left: 4, bottom: 8 })
+  }
 
-          Text('当前服务节点与登录身份')
+  @Builder
+  connectionGroup() {
+    Column() {
+      Row() {
+        Column({ space: 3 }) {
+          Text('服务器地址')
             .fontSize(12)
             .fontColor($r('app.color.text_secondary'))
+          Text(this.getServerAddressText())
+            .fontSize(14)
+            .fontWeight(FontWeight.Medium)
+            .fontColor($r('app.color.text_primary'))
+            .maxLines(1)
+            .textOverflow({ overflow: TextOverflow.Ellipsis })
         }
+        .layoutWeight(1)
         .alignItems(HorizontalAlign.Start)
 
-        Blank()
+        SymbolGlyph($r('sys.symbol.chevron_right'))
+          .fontSize(16)
+          .fontColor([$r('app.color.tab_inactive_fg')])
+      }
+      .width('100%')
+      .padding({ left: 16, right: 14, top: 14, bottom: 14 })
+      .alignItems(VerticalAlign.Center)
+      .onClick(() => {
+        this.openServerConfig();
+      })
 
-        Text(this.isConnected ? '已连接' : (this.guestMode ? '示例体验' : '未连接'))
-          .fontSize(11)
-          .fontWeight(FontWeight.Bold)
-          .fontColor(this.isConnected ? $r('app.color.success_color') : (this.guestMode ? $r('app.color.accent_color') : $r('app.color.error_color')))
-          .padding({ left: 10, right: 10, top: 6, bottom: 6 })
-          .backgroundColor(this.isConnected ? $r('app.color.dashboard_surface_success') : (this.guestMode ? $r('app.color.dashboard_surface_info') : $r('app.color.dashboard_surface_danger')))
+      Divider()
+        .color($r('app.color.dashboard_border_soft'))
+        .margin({ left: 16 })
+
+      Row() {
+        Column({ space: 3 }) {
+          Text('登录账户')
+            .fontSize(12)
+            .fontColor($r('app.color.text_secondary'))
+          Text(this.getAccountText())
+            .fontSize(14)
+            .fontWeight(FontWeight.Medium)
+            .fontColor($r('app.color.text_primary'))
+            .maxLines(1)
+            .textOverflow({ overflow: TextOverflow.Ellipsis })
+        }
+        .layoutWeight(1)
+        .alignItems(HorizontalAlign.Start)
+
+        SymbolGlyph($r('sys.symbol.chevron_right'))
+          .fontSize(16)
+          .fontColor([$r('app.color.tab_inactive_fg')])
+      }
+      .width('100%')
+      .padding({ left: 16, right: 14, top: 14, bottom: 14 })
+      .alignItems(VerticalAlign.Center)
+      .onClick(() => {
+        this.openServerConfig();
+      })
+    }
+    .width('100%')
+    .backgroundColor($r('app.color.card_background'))
+    .border({ width: 1, color: $r('app.color.dashboard_border') })
+    .borderRadius(20)
+    .clip(true)
+    .margin({ bottom: 20 })
+  }
+
+  @Builder
+  pollingGroup() {
+    Column({ space: 12 }) {
+      Row() {
+        Text('数据刷新间隔')
+          .fontSize(14)
+          .fontWeight(FontWeight.Medium)
+          .fontColor($r('app.color.text_primary'))
+        Blank()
+        Text(`当前 ${this.getPollingLabel()}`)
+          .fontSize(12)
+          .fontWeight(FontWeight.Medium)
+          .fontColor($r('app.color.accent_color'))
+      }
+      .width('100%')
+      .alignItems(VerticalAlign.Center)
+
+      Row({ space: 8 }) {
+        ForEach(this.pollingOptions, (ms: number) => {
+          Row() {
+            Text(`${Math.floor(ms / 1000)}s`)
+              .fontSize(13)
+              .fontWeight(FontWeight.Bold)
+              .fontColor(this.pollingInterval === ms ? $r('app.color.tab_active_fg') : $r('app.color.text_secondary'))
+          }
+          .layoutWeight(1)
+          .height(38)
+          .justifyContent(FlexAlign.Center)
+          .backgroundColor(this.pollingInterval === ms ? $r('app.color.tab_active_bg') : $r('app.color.dashboard_surface_soft'))
           .border({
             width: 1,
-            color: this.isConnected ? $r('app.color.success_color') : (this.guestMode ? $r('app.color.download_selected_border') : $r('app.color.download_warn_border'))
+            color: this.pollingInterval === ms ? $r('app.color.tab_active_bg') : $r('app.color.dashboard_border')
           })
           .borderRadius(999)
+          .onClick(() => {
+            this.savePollingInterval(ms);
+          })
+        }, (ms: number) => ms.toString())
       }
       .width('100%')
-
-      this.serverAddressRow()
-      this.accountRow()
     }
     .width('100%')
-    .padding(14)
+    .padding({ left: 16, right: 16, top: 14, bottom: 14 })
     .backgroundColor($r('app.color.card_background'))
+    .border({ width: 1, color: $r('app.color.dashboard_border') })
     .borderRadius(20)
-    .border({
-      width: 1,
-      color: $r('app.color.dashboard_border')
-    })
+    .margin({ bottom: 20 })
   }
 
   @Builder
-  private refreshCard() {
-    Column({ space: 10 }) {
-      Column({ space: 4 }) {
-        Text('刷新间隔')
-          .fontSize(16)
-          .fontWeight(FontWeight.Bold)
+  aboutGroup() {
+    Column() {
+      Row() {
+        Text('应用版本')
+          .fontSize(14)
+          .fontWeight(FontWeight.Medium)
           .fontColor($r('app.color.text_primary'))
-
-        Text('控制队列与详情页的轮询频率')
-          .fontSize(12)
+        Blank()
+        Text('v1.0.0')
+          .fontSize(13)
           .fontColor($r('app.color.text_secondary'))
       }
       .width('100%')
-      .alignItems(HorizontalAlign.Start)
+      .padding({ left: 16, right: 16, top: 14, bottom: 14 })
+      .alignItems(VerticalAlign.Center)
 
-      Row({ space: 6 }) {
-        Button('1 秒')
-          .layoutWeight(1)
-          .height(40)
-          .fontSize(13)
-          .fontWeight(FontWeight.Bold)
-          .fontColor(this.pollingInterval === 1000 ? $r('app.color.tab_active_fg') : $r('app.color.text_secondary'))
-          .backgroundColor(this.pollingInterval === 1000 ? $r('app.color.tab_active_bg') : $r('app.color.dashboard_surface_soft'))
-          .border({
-            width: 1,
-            color: this.pollingInterval === 1000 ? $r('app.color.tab_active_bg') : $r('app.color.dashboard_border')
-          })
-          .borderRadius(16)
-          .onClick(() => this.savePollingInterval(1000))
+      Divider()
+        .color($r('app.color.dashboard_border_soft'))
+        .margin({ left: 16 })
 
-        Button('2 秒')
-          .layoutWeight(1)
-          .height(40)
-          .fontSize(13)
-          .fontWeight(FontWeight.Bold)
-          .fontColor(this.pollingInterval === 2000 ? $r('app.color.tab_active_fg') : $r('app.color.text_secondary'))
-          .backgroundColor(this.pollingInterval === 2000 ? $r('app.color.tab_active_bg') : $r('app.color.dashboard_surface_soft'))
-          .border({
-            width: 1,
-            color: this.pollingInterval === 2000 ? $r('app.color.tab_active_bg') : $r('app.color.dashboard_border')
-          })
-          .borderRadius(16)
-          .onClick(() => this.savePollingInterval(2000))
-
-        Button('5 秒')
-          .layoutWeight(1)
-          .height(40)
-          .fontSize(13)
-          .fontWeight(FontWeight.Bold)
-          .fontColor(this.pollingInterval === 5000 ? $r('app.color.tab_active_fg') : $r('app.color.text_secondary'))
-          .backgroundColor(this.pollingInterval === 5000 ? $r('app.color.tab_active_bg') : $r('app.color.dashboard_surface_soft'))
-          .border({
-            width: 1,
-            color: this.pollingInterval === 5000 ? $r('app.color.tab_active_bg') : $r('app.color.dashboard_border')
-          })
-          .borderRadius(16)
-          .onClick(() => this.savePollingInterval(5000))
-
-        Button('10 秒')
-          .layoutWeight(1)
-          .height(40)
-          .fontSize(13)
-          .fontWeight(FontWeight.Bold)
-          .fontColor(this.pollingInterval === 10000 ? $r('app.color.tab_active_fg') : $r('app.color.text_secondary'))
-          .backgroundColor(this.pollingInterval === 10000 ? $r('app.color.tab_active_bg') : $r('app.color.dashboard_surface_soft'))
-          .border({
-            width: 1,
-            color: this.pollingInterval === 10000 ? $r('app.color.tab_active_bg') : $r('app.color.dashboard_border')
-          })
-          .borderRadius(16)
-          .onClick(() => this.savePollingInterval(10000))
-      }
-      .width('100%')
-    }
-    .width('100%')
-    .padding(14)
-    .backgroundColor($r('app.color.card_background'))
-    .borderRadius(20)
-    .border({
-      width: 1,
-      color: $r('app.color.dashboard_border')
-    })
-  }
-
-  @Builder
-  private aboutCard() {
-    Column({ space: 10 }) {
-      Column({ space: 4 }) {
-        Text('关于应用')
-          .fontSize(16)
-          .fontWeight(FontWeight.Bold)
+      Row() {
+        Text('WebUI API')
+          .fontSize(14)
+          .fontWeight(FontWeight.Medium)
           .fontColor($r('app.color.text_primary'))
-
-        Text('版本与基础信息')
-          .fontSize(12)
+        Blank()
+        Text('qBittorrent 5.x')
+          .fontSize(13)
           .fontColor($r('app.color.text_secondary'))
       }
       .width('100%')
-      .alignItems(HorizontalAlign.Start)
-
-      this.versionRow()
-      this.apiRow()
+      .padding({ left: 16, right: 16, top: 14, bottom: 14 })
+      .alignItems(VerticalAlign.Center)
     }
     .width('100%')
-    .padding(14)
     .backgroundColor($r('app.color.card_background'))
+    .border({ width: 1, color: $r('app.color.dashboard_border') })
     .borderRadius(20)
+    .clip(true)
+    .margin({ bottom: 20 })
+  }
+
+  @Builder
+  disconnectArea() {
+    Row() {
+      Text(this.guestMode ? '退出示例体验' : (this.isDisconnecting ? '断开中…' : '断开当前服务器'))
+        .fontSize(14)
+        .fontWeight(FontWeight.Medium)
+        .fontColor(this.guestMode ? $r('app.color.accent_color') : $r('app.color.error_color'))
+    }
+    .width('100%')
+    .height(50)
+    .justifyContent(FlexAlign.Center)
+    .backgroundColor(this.guestMode ? $r('app.color.dashboard_surface_info') : $r('app.color.dashboard_surface_danger'))
     .border({
       width: 1,
-      color: $r('app.color.dashboard_border')
+      color: this.guestMode ? $r('app.color.download_selected_border') : $r('app.color.download_warn_border')
+    })
+    .borderRadius(20)
+    .onClick(() => {
+      if (this.isDisconnecting) {
+        return;
+      }
+      if (this.guestMode) {
+        this.exitGuestMode();
+        return;
+      }
+      this.showDisconnectConfirm = true;
     })
   }
 
   @Builder
-  private disconnectButton() {
-    Button(this.guestMode ? '退出示例体验' : (this.isDisconnecting ? '断开中...' : '断开当前服务器'))
-      .width('100%')
-      .height(48)
-      .fontSize(14)
-      .fontWeight(FontWeight.Bold)
-      .fontColor(this.guestMode ? $r('app.color.accent_color') : $r('app.color.error_color'))
-      .backgroundColor(this.guestMode ? $r('app.color.dashboard_surface_info') : $r('app.color.dashboard_surface_danger'))
-      .border({
-        width: 1,
-        color: this.guestMode ? $r('app.color.download_selected_border') : $r('app.color.download_warn_border')
-      })
-      .borderRadius(18)
-      .enabled(!this.isDisconnecting)
-      .onClick(() => {
-        if (this.guestMode) {
-          this.exitGuestMode();
-          return;
-        }
-        this.showDisconnectConfirm = true;
-      })
-  }
-
-  @Builder
-  private disconnectConfirmDialog() {
+  disconnectConfirmDialog() {
     Stack({ alignContent: Alignment.Center }) {
       Row()
         .width('100%')
@@ -453,20 +486,23 @@ export struct SettingsPage {
           }
         })
 
-      Column({ space: 14 }) {
-        Text('断开服务器')
-          .fontSize(18)
-          .fontWeight(FontWeight.Bold)
-          .fontColor($r('app.color.text_primary'))
-
-        Text('将断开当前 qBittorrent 连接，并返回服务器配置页。')
-          .fontSize(13)
-          .fontColor($r('app.color.text_secondary'))
+      Column({ space: 16 }) {
+        Column({ space: 6 }) {
+          Text('断开服务器')
+            .fontSize(18)
+            .fontWeight(FontWeight.Bold)
+            .fontColor($r('app.color.text_primary'))
+          Text('将断开当前 qBittorrent 连接，并返回服务器配置页。')
+            .fontSize(13)
+            .fontColor($r('app.color.text_secondary'))
+        }
+        .width('100%')
+        .alignItems(HorizontalAlign.Start)
 
         Row({ space: 10 }) {
           Button('取消')
             .layoutWeight(1)
-            .height(42)
+            .height(44)
             .fontSize(14)
             .fontColor($r('app.color.text_primary'))
             .backgroundColor($r('app.color.dashboard_surface_muted'))
@@ -476,9 +512,9 @@ export struct SettingsPage {
               this.showDisconnectConfirm = false;
             })
 
-          Button(this.isDisconnecting ? '断开中...' : '确认断开')
+          Button(this.isDisconnecting ? '断开中…' : '确认断开')
             .layoutWeight(1)
-            .height(42)
+            .height(44)
             .fontSize(14)
             .fontColor($r('app.color.tab_active_fg'))
             .backgroundColor($r('app.color.error_color'))
@@ -490,117 +526,13 @@ export struct SettingsPage {
         }
         .width('100%')
       }
-      .width(286)
-      .padding(18)
+      .width(290)
+      .padding(20)
       .backgroundColor($r('app.color.card_background'))
       .borderRadius(24)
       .alignItems(HorizontalAlign.Start)
     }
     .width('100%')
     .height('100%')
-  }
-
-  @Builder
-  private serverAddressRow() {
-    Row() {
-      Column({ space: 4 }) {
-        Text('服务器地址')
-          .fontSize(12)
-          .fontWeight(FontWeight.Medium)
-          .fontColor($r('app.color.text_secondary'))
-
-        Text(this.getServerAddressText())
-          .fontSize(14)
-          .fontWeight(FontWeight.Bold)
-          .fontColor($r('app.color.text_primary'))
-          .maxLines(1)
-          .textOverflow({ overflow: TextOverflow.Ellipsis })
-      }
-      .layoutWeight(1)
-      .alignItems(HorizontalAlign.Start)
-
-      Text('编辑')
-        .fontSize(12)
-        .fontWeight(FontWeight.Bold)
-        .fontColor($r('app.color.accent_color'))
-        .onClick(() => this.openServerConfig())
-    }
-    .width('100%')
-    .padding({ left: 12, right: 12, top: 10, bottom: 10 })
-    .backgroundColor($r('app.color.dashboard_surface_soft'))
-    .borderRadius(16)
-  }
-
-  @Builder
-  private accountRow() {
-    Row() {
-      Column({ space: 4 }) {
-        Text('登录账户')
-          .fontSize(12)
-          .fontWeight(FontWeight.Medium)
-          .fontColor($r('app.color.text_secondary'))
-
-        Text(this.getAccountText())
-          .fontSize(14)
-          .fontWeight(FontWeight.Bold)
-          .fontColor($r('app.color.text_primary'))
-          .maxLines(1)
-          .textOverflow({ overflow: TextOverflow.Ellipsis })
-      }
-      .layoutWeight(1)
-      .alignItems(HorizontalAlign.Start)
-
-      Text('切换')
-        .fontSize(12)
-        .fontWeight(FontWeight.Bold)
-        .fontColor($r('app.color.accent_color'))
-        .onClick(() => this.openServerConfig())
-    }
-    .width('100%')
-    .padding({ left: 12, right: 12, top: 10, bottom: 10 })
-    .backgroundColor($r('app.color.dashboard_surface_soft'))
-    .borderRadius(16)
-  }
-
-  @Builder
-  private versionRow() {
-    Row() {
-      Text('当前版本')
-        .fontSize(13)
-        .fontWeight(FontWeight.Medium)
-        .fontColor($r('app.color.text_secondary'))
-
-      Blank()
-
-      Text('v1.0.0')
-        .fontSize(13)
-        .fontWeight(FontWeight.Bold)
-        .fontColor($r('app.color.text_primary'))
-    }
-    .width('100%')
-    .padding({ left: 12, right: 12, top: 10, bottom: 10 })
-    .backgroundColor($r('app.color.dashboard_surface_soft'))
-    .borderRadius(16)
-  }
-
-  @Builder
-  private apiRow() {
-    Row() {
-      Text('WebUI API')
-        .fontSize(13)
-        .fontWeight(FontWeight.Medium)
-        .fontColor($r('app.color.text_secondary'))
-
-      Blank()
-
-      Text('qBittorrent 5.x')
-        .fontSize(13)
-        .fontWeight(FontWeight.Bold)
-        .fontColor($r('app.color.text_primary'))
-    }
-    .width('100%')
-    .padding({ left: 12, right: 12, top: 10, bottom: 10 })
-    .backgroundColor($r('app.color.dashboard_surface_soft'))
-    .borderRadius(16)
   }
 }
