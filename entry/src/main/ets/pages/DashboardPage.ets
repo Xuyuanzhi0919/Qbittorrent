@@ -30,6 +30,7 @@ export struct DashboardPage {
   @State totalDownloadedBytes: number = 0;
   @State sessionSeconds: number = 0;
   @State actionMessage: string = '';
+  @State waveOffset: boolean = false;
   @State @Watch('onAnySheetChanged') pendingDeleteHash: string = '';
   @State expandedTaskHash: string = '';
   @State @Watch('onAnySheetChanged') showGlobalLimitSheet: boolean = false;
@@ -50,6 +51,9 @@ export struct DashboardPage {
   aboutToAppear(): void {
     this.service = AppService.getService();
     this.sessionStartTime = Date.now();
+    setTimeout(() => {
+      this.waveOffset = true;
+    }, 300);
     if (this.guestMode) {
       this.loadGuestDemoData();
       this.startAutoRefresh();
@@ -760,104 +764,142 @@ export struct DashboardPage {
 
   @Builder
   heroSection() {
-    Column({ space: 16 }) {
-      if (this.isLoading) {
-        Column({ space: 14 }) {
-          Row() {
+    Column() {
+      Column({ space: 16 }) {
+        if (this.isLoading) {
+          Column({ space: 14 }) {
+            Row() {
+              Column({ space: 8 }) {
+                Row()
+                  .width(100)
+                  .height(12)
+                  .backgroundColor($r('app.color.dashboard_border_soft'))
+                  .borderRadius(999)
+                Row()
+                  .width(180)
+                  .height(36)
+                  .backgroundColor($r('app.color.dashboard_border'))
+                  .borderRadius(14)
+              }
+              .alignItems(HorizontalAlign.Start)
+              .layoutWeight(1)
+            }
+            .width('100%')
+
             Column({ space: 8 }) {
               Row()
-                .width(100)
-                .height(12)
-                .backgroundColor($r('app.color.dashboard_border_soft'))
+                .width('100%')
+                .height(32)
+                .backgroundColor($r('app.color.dashboard_surface_success'))
                 .borderRadius(999)
               Row()
-                .width(180)
-                .height(36)
-                .backgroundColor($r('app.color.dashboard_border'))
-                .borderRadius(14)
+                .width('100%')
+                .height(32)
+                .backgroundColor($r('app.color.dashboard_surface_warning'))
+                .borderRadius(999)
+            }
+            .width('100%')
+
+            Row({ space: 8 }) {
+              this.summarySkeletonChip()
+              this.summarySkeletonChip()
+              this.summarySkeletonChip()
+            }
+            .width('100%')
+          }
+          .width('100%')
+        } else {
+          Row() {
+            Column({ space: 4 }) {
+              Text('实时传输速率')
+                .fontSize(12)
+                .fontWeight(FontWeight.Medium)
+                .fontColor($r('app.color.text_secondary'))
+              Text(this.formatDashboardSpeed(this.getTotalSpeed()))
+                .fontSize(36)
+                .fontWeight(FontWeight.Bold)
+                .letterSpacing(-0.8)
+                .fontColor($r('app.color.text_primary'))
+                .maxLines(1)
+                .textOverflow({ overflow: TextOverflow.Ellipsis })
             }
             .alignItems(HorizontalAlign.Start)
             .layoutWeight(1)
+
+            Column({ space: 4 }) {
+              Text(this.getStatusSummary())
+                .fontSize(13)
+                .fontWeight(FontWeight.Bold)
+                .fontColor(this.getConnectionColor())
+              Text(`${this.dhtNodes} 节点`)
+                .fontSize(11)
+                .fontWeight(FontWeight.Normal)
+                .fontColor($r('app.color.text_secondary'))
+            }
+            .alignItems(HorizontalAlign.End)
           }
           .width('100%')
+          .alignItems(VerticalAlign.Center)
 
           Column({ space: 8 }) {
-            Row()
-              .width('100%')
-              .height(32)
-              .backgroundColor($r('app.color.dashboard_surface_success'))
-              .borderRadius(999)
-            Row()
-              .width('100%')
-              .height(32)
-              .backgroundColor($r('app.color.dashboard_surface_warning'))
-              .borderRadius(999)
+            this.downloadSpeedLine()
+            this.uploadSpeedLine()
           }
           .width('100%')
 
           Row({ space: 8 }) {
-            this.summarySkeletonChip()
-            this.summarySkeletonChip()
-            this.summarySkeletonChip()
+            this.averageSpeedChip()
+            this.peakSpeedChip()
+            this.etaChip()
           }
           .width('100%')
         }
-        .width('100%')
-      } else {
-        Row() {
-          Column({ space: 4 }) {
-            Text('实时传输速率')
-              .fontSize(12)
-              .fontWeight(FontWeight.Medium)
-              .fontColor($r('app.color.text_secondary'))
-            Text(this.formatDashboardSpeed(this.getTotalSpeed()))
-              .fontSize(36)
-              .fontWeight(FontWeight.Bold)
-              .letterSpacing(-0.8)
-              .fontColor($r('app.color.text_primary'))
-              .maxLines(1)
-              .textOverflow({ overflow: TextOverflow.Ellipsis })
-          }
-          .alignItems(HorizontalAlign.Start)
-          .layoutWeight(1)
+      }
+      .width('100%')
+      .padding({ left: 18, right: 18, top: 18, bottom: this.isLoading ? 18 : 12 })
 
-          Column({ space: 4 }) {
-            Text(this.getStatusSummary())
-              .fontSize(13)
-              .fontWeight(FontWeight.Bold)
-              .fontColor(this.getConnectionColor())
-            Text(`${this.dhtNodes} 节点`)
-              .fontSize(11)
-              .fontWeight(FontWeight.Normal)
-              .fontColor($r('app.color.text_secondary'))
-          }
-          .alignItems(HorizontalAlign.End)
+      if (!this.isLoading) {
+        Stack({ alignContent: Alignment.Bottom }) {
+          Row()
+            .width('150%')
+            .height(48)
+            .backgroundColor($r('app.color.dashboard_surface_info'))
+            .borderRadius({ topLeft: 160, topRight: 48 })
+            .opacity(0.72)
+            .translate({ x: this.waveOffset ? -52 : 16 })
+            .animation({
+              duration: 5200,
+              curve: Curve.EaseInOut,
+              iterations: -1,
+              playMode: PlayMode.Alternate
+            })
+          Row()
+            .width('130%')
+            .height(30)
+            .backgroundColor($r('app.color.dashboard_surface_success'))
+            .borderRadius({ topLeft: 48, topRight: 140 })
+            .opacity(0.55)
+            .translate({ x: this.waveOffset ? 40 : -16 })
+            .animation({
+              duration: 3900,
+              curve: Curve.EaseInOut,
+              iterations: -1,
+              playMode: PlayMode.Alternate
+            })
         }
         .width('100%')
-        .alignItems(VerticalAlign.Center)
-
-        Column({ space: 8 }) {
-          this.downloadSpeedLine()
-          this.uploadSpeedLine()
-        }
-        .width('100%')
-
-        Row({ space: 8 }) {
-          this.averageSpeedChip()
-          this.peakSpeedChip()
-          this.etaChip()
-        }
-        .width('100%')
+        .height(48)
+        .clip(true)
       }
     }
     .width('100%')
-    .padding(18)
     .backgroundColor($r('app.color.card_background'))
     .border({
       width: 1,
       color: $r('app.color.dashboard_border')
     })
     .borderRadius(28)
+    .clip(true)
     .shadow({
       radius: 14,
       color: $r('app.color.dashboard_shadow'),
