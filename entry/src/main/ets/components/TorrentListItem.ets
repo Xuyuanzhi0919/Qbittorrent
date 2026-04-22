@@ -67,18 +67,18 @@ export struct TorrentListItem {
       Stack({ alignContent: Alignment.Start }) {
         Row()
           .width('100%')
-          .height(6)
+          .height(5)
           .backgroundColor($r('app.color.dashboard_progress_track'))
           .borderRadius(999)
 
         Row()
           .width(`${this.getProgressPercent()}%`)
-          .height(6)
+          .height(5)
           .linearGradient({
             angle: 90,
             colors: [
-              ['#2D7DFF', 0],
-              ['#6AAFFF', 1]
+              ['#2563EB', 0],
+              ['#60A5FA', 1]
             ]
           })
           .borderRadius(999)
@@ -114,15 +114,30 @@ export struct TorrentListItem {
       .width('100%')
       .alignItems(VerticalAlign.Center)
 
-      if (this.getLabelText().length > 0) {
-        Row({ space: 8 }) {
-          Text(this.getLabelText())
-            .fontSize(11)
-            .fontWeight(FontWeight.Medium)
-            .fontColor($r('app.color.accent_color'))
-            .padding({ left: 8, right: 8, top: 4, bottom: 4 })
-            .backgroundColor($r('app.color.dashboard_surface_info'))
-            .borderRadius(999)
+      if (this.torrent.category.trim().length > 0 || this.torrent.tags.trim().length > 0) {
+        Row({ space: 6 }) {
+          if (this.torrent.category.trim().length > 0) {
+            Text(this.torrent.category.trim())
+              .fontSize(10)
+              .fontWeight(FontWeight.Medium)
+              .fontColor($r('app.color.accent_color'))
+              .padding({ left: 8, right: 8, top: 3, bottom: 3 })
+              .backgroundColor($r('app.color.dashboard_surface_info'))
+              .borderRadius(999)
+          }
+          if (this.torrent.tags.trim().length > 0) {
+            Text(this.torrent.tags.trim())
+              .fontSize(10)
+              .fontWeight(FontWeight.Medium)
+              .fontColor($r('app.color.text_secondary'))
+              .padding({ left: 8, right: 8, top: 3, bottom: 3 })
+              .backgroundColor($r('app.color.dashboard_surface_soft'))
+              .border({ width: 1, color: $r('app.color.dashboard_border') })
+              .borderRadius(999)
+              .maxLines(1)
+              .textOverflow({ overflow: TextOverflow.Ellipsis })
+              .constraintSize({ maxWidth: 160 })
+          }
         }
         .width('100%')
       }
@@ -181,20 +196,6 @@ export struct TorrentListItem {
       return '压缩文件';
     }
     return '下载任务';
-  }
-
-  private getLabelText(): string {
-    const tags: string = this.torrent.tags.trim();
-    if (tags.length > 0) {
-      return `标签: ${tags}`;
-    }
-
-    const category: string = this.torrent.category.trim();
-    if (category.length > 0) {
-      return `分类: ${category}`;
-    }
-
-    return '';
   }
 
   private getStateBackgroundColor(): ResourceStr {

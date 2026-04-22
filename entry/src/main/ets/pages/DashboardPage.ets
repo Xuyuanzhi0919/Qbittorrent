@@ -29,7 +29,6 @@ export struct DashboardPage {
   @State etaSeconds: number = -1;
   @State totalDownloadedBytes: number = 0;
   @State sessionSeconds: number = 0;
-  @State decorAnimated: boolean = false;
   @State actionMessage: string = '';
   @State @Watch('onAnySheetChanged') pendingDeleteHash: string = '';
   @State expandedTaskHash: string = '';
@@ -51,9 +50,6 @@ export struct DashboardPage {
   aboutToAppear(): void {
     this.service = AppService.getService();
     this.sessionStartTime = Date.now();
-    setTimeout(() => {
-      this.decorAnimated = true;
-    }, 0);
     if (this.guestMode) {
       this.loadGuestDemoData();
       this.startAutoRefresh();
@@ -616,15 +612,9 @@ export struct DashboardPage {
             this.tasksSection()
             this.globalSpeedLimitCard()
 
-            Row({ space: 10 }) {
-              this.primaryActionChip('添加任务', () => {
-                AppService.pushPage('AddTorrent');
-              })
-              this.secondaryActionChip('导入磁链', () => {
-                AppService.pushPage('AddTorrent');
-              })
-            }
-            .width('100%')
+            this.primaryActionChip('添加下载任务', () => {
+              AppService.pushPage('AddTorrent');
+            })
 
           }
           .width('100%')
@@ -738,19 +728,11 @@ export struct DashboardPage {
   @Builder
   headerSection() {
     Row() {
-      Column({ space: 4 }) {
-        Text('DOWNLOAD CENTER')
-          .fontSize(12)
-          .fontWeight(FontWeight.Medium)
-          .letterSpacing(1)
-          .fontColor($r('app.color.text_secondary'))
-        Text('仪表盘')
-          .fontSize(28)
-          .fontWeight(FontWeight.Bold)
-          .letterSpacing(-0.5)
-          .fontColor($r('app.color.text_primary'))
-      }
-      .alignItems(HorizontalAlign.Start)
+      Text('仪表盘')
+        .fontSize(28)
+        .fontWeight(FontWeight.Bold)
+        .letterSpacing(-0.5)
+        .fontColor($r('app.color.text_primary'))
 
       Blank()
 
@@ -778,232 +760,98 @@ export struct DashboardPage {
 
   @Builder
   heroSection() {
-    Stack() {
-      Circle()
-        .width(180)
-        .height(180)
-        .fill($r('app.color.dashboard_decor_primary'))
-        .opacity(this.decorAnimated ? 0.52 : 0.38)
-        .position({ x: 220, y: -34 })
-        .translate({
-          x: this.decorAnimated ? -8 : 0,
-          y: this.decorAnimated ? 10 : 0
-        })
-        .scale({
-          x: this.decorAnimated ? 1.04 : 1,
-          y: this.decorAnimated ? 1.04 : 1
-        })
-        .animation({
-          duration: 3600,
-          curve: Curve.EaseInOut,
-          iterations: -1,
-          playMode: PlayMode.Alternate
-        })
-
-      Circle()
-        .width(120)
-        .height(120)
-        .fill($r('app.color.dashboard_decor_secondary'))
-        .opacity(this.decorAnimated ? 0.58 : 0.44)
-        .position({ x: -24, y: 88 })
-        .translate({
-          x: this.decorAnimated ? 8 : 0,
-          y: this.decorAnimated ? 6 : 0
-        })
-        .scale({
-          x: this.decorAnimated ? 1.05 : 1,
-          y: this.decorAnimated ? 1.05 : 1
-        })
-        .animation({
-          duration: 3000,
-          curve: Curve.EaseInOut,
-          iterations: -1,
-          playMode: PlayMode.Alternate
-        })
-
-      Column({ space: 12 }) {
-        if (this.isLoading) {
-          Column({ space: 12 }) {
-            Row() {
-              Column({ space: 8 }) {
-                Row()
-                  .width(76)
-                  .height(12)
-                  .backgroundColor($r('app.color.dashboard_border_soft'))
-                  .borderRadius(999)
-                Row()
-                  .width(164)
-                  .height(34)
-                  .backgroundColor($r('app.color.dashboard_border'))
-                  .borderRadius(14)
-                Column({ space: 6 }) {
-                  Row()
-                    .width(124)
-                    .height(28)
-                    .backgroundColor($r('app.color.dashboard_surface_success'))
-                    .borderRadius(999)
-                  Row()
-                    .width(124)
-                    .height(28)
-                    .backgroundColor($r('app.color.dashboard_surface_warning'))
-                    .borderRadius(999)
-                }
-                .width('100%')
-                .alignItems(HorizontalAlign.Start)
-              }
-              .width(214)
-              .alignItems(HorizontalAlign.Start)
-
-              Blank()
-
-              Column({ space: 8 }) {
-                Row()
-                  .width(56)
-                  .height(10)
-                  .backgroundColor($r('app.color.dashboard_border_soft'))
-                  .borderRadius(999)
-                Row()
-                  .width(56)
-                  .height(20)
-                  .backgroundColor($r('app.color.dashboard_border'))
-                  .borderRadius(12)
-                Column({ space: 6 }) {
-                  Row()
-                    .width('100%')
-                    .height(8)
-                    .backgroundColor($r('app.color.dashboard_progress_track'))
-                    .borderRadius(999)
-                  Row()
-                    .width('100%')
-                    .height(8)
-                    .backgroundColor($r('app.color.dashboard_progress_track'))
-                    .borderRadius(999)
-                }
-                .width('100%')
-              }
-              .width(80)
-              .padding({ top: 12, bottom: 12, left: 12, right: 12 })
-              .backgroundColor($r('app.color.dashboard_surface_soft'))
-              .border({
-                width: 1,
-                color: $r('app.color.dashboard_border')
-              })
-              .borderRadius(20)
-              .alignItems(HorizontalAlign.Start)
+    Column({ space: 16 }) {
+      if (this.isLoading) {
+        Column({ space: 14 }) {
+          Row() {
+            Column({ space: 8 }) {
+              Row()
+                .width(100)
+                .height(12)
+                .backgroundColor($r('app.color.dashboard_border_soft'))
+                .borderRadius(999)
+              Row()
+                .width(180)
+                .height(36)
+                .backgroundColor($r('app.color.dashboard_border'))
+                .borderRadius(14)
             }
-            .width('100%')
-            .alignItems(VerticalAlign.Bottom)
-
-            Row({ space: 8 }) {
-              this.summarySkeletonChip()
-              this.summarySkeletonChip()
-              this.summarySkeletonChip()
-            }
-            .width('100%')
+            .alignItems(HorizontalAlign.Start)
+            .layoutWeight(1)
           }
           .width('100%')
-        } else {
-          Row() {
+
           Column({ space: 8 }) {
-            Text('总传输速率')
-              .fontSize(13)
+            Row()
+              .width('100%')
+              .height(32)
+              .backgroundColor($r('app.color.dashboard_surface_success'))
+              .borderRadius(999)
+            Row()
+              .width('100%')
+              .height(32)
+              .backgroundColor($r('app.color.dashboard_surface_warning'))
+              .borderRadius(999)
+          }
+          .width('100%')
+
+          Row({ space: 8 }) {
+            this.summarySkeletonChip()
+            this.summarySkeletonChip()
+            this.summarySkeletonChip()
+          }
+          .width('100%')
+        }
+        .width('100%')
+      } else {
+        Row() {
+          Column({ space: 4 }) {
+            Text('实时传输速率')
+              .fontSize(12)
               .fontWeight(FontWeight.Medium)
               .fontColor($r('app.color.text_secondary'))
-
             Text(this.formatDashboardSpeed(this.getTotalSpeed()))
-              .fontSize(34)
+              .fontSize(36)
               .fontWeight(FontWeight.Bold)
-              .letterSpacing(-0.6)
+              .letterSpacing(-0.8)
               .fontColor($r('app.color.text_primary'))
               .maxLines(1)
               .textOverflow({ overflow: TextOverflow.Ellipsis })
-              .constraintSize({ minWidth: 164 })
-
-            Column({ space: 6 }) {
-              this.downloadSpeedLine()
-              this.uploadSpeedLine()
-            }
-            .width('100%')
-            .alignItems(HorizontalAlign.Start)
           }
-          .width(214)
           .alignItems(HorizontalAlign.Start)
+          .layoutWeight(1)
 
-          Blank()
-
-          Column({ space: 8 }) {
-            Text('当前状态')
-              .fontSize(11)
-              .fontWeight(FontWeight.Medium)
-              .fontColor($r('app.color.text_secondary'))
-
+          Column({ space: 4 }) {
             Text(this.getStatusSummary())
-              .fontSize(20)
+              .fontSize(13)
               .fontWeight(FontWeight.Bold)
-              .fontColor($r('app.color.text_primary'))
-
-            Column({ space: 6 }) {
-              Stack({ alignContent: Alignment.Start }) {
-                Row()
-                  .width('100%')
-                  .height(8)
-                  .backgroundColor($r('app.color.dashboard_progress_track'))
-                  .borderRadius(999)
-                Row()
-                  .width(this.getTrackWidth(this.getDownloadPercent(), 64))
-                  .height(8)
-                  .linearGradient({
-                    angle: 90,
-                    colors: [
-                      ['#3B82F6', 0],
-                      ['#60A5FA', 1]
-                    ]
-                  })
-                  .borderRadius(999)
-              }
-              .width('100%')
-
-              Stack({ alignContent: Alignment.Start }) {
-                Row()
-                  .width('100%')
-                  .height(8)
-                  .backgroundColor($r('app.color.dashboard_progress_track'))
-                  .borderRadius(999)
-                Row()
-                  .width(this.getTrackWidth(this.getUploadPercent(), 64))
-                  .height(8)
-                  .backgroundColor($r('app.color.dashboard_progress_secondary'))
-                  .borderRadius(999)
-              }
-              .width('100%')
-            }
-            .width('100%')
+              .fontColor(this.getConnectionColor())
+            Text(`${this.dhtNodes} 节点`)
+              .fontSize(11)
+              .fontWeight(FontWeight.Normal)
+              .fontColor($r('app.color.text_secondary'))
           }
-          .width(80)
-          .padding({ top: 12, bottom: 12, left: 12, right: 12 })
-          .backgroundColor($r('app.color.dashboard_surface_soft'))
-          .border({
-            width: 1,
-            color: $r('app.color.dashboard_border')
-          })
-          .borderRadius(20)
-          .alignItems(HorizontalAlign.Start)
+          .alignItems(HorizontalAlign.End)
         }
         .width('100%')
-        .alignItems(VerticalAlign.Bottom)
+        .alignItems(VerticalAlign.Center)
 
-          Row({ space: 8 }) {
-            this.averageSpeedChip()
-            this.peakSpeedChip()
-            this.etaChip()
-          }
-          .width('100%')
+        Column({ space: 8 }) {
+          this.downloadSpeedLine()
+          this.uploadSpeedLine()
         }
+        .width('100%')
+
+        Row({ space: 8 }) {
+          this.averageSpeedChip()
+          this.peakSpeedChip()
+          this.etaChip()
+        }
+        .width('100%')
       }
-      .width('100%')
     }
     .width('100%')
-    .padding(16)
+    .padding(18)
     .backgroundColor($r('app.color.card_background'))
     .border({
       width: 1,
@@ -1158,7 +1006,7 @@ export struct DashboardPage {
           .fontWeight(FontWeight.Bold)
           .fontColor($r('app.color.text_primary'))
 
-        Text('高优先级下载中')
+        Text('个任务下载中')
           .fontSize(13)
           .fontWeight(FontWeight.Medium)
           .fontColor($r('app.color.accent_color'))
@@ -1216,7 +1064,7 @@ export struct DashboardPage {
           .fontWeight(FontWeight.Bold)
           .fontColor($r('app.color.text_primary'))
 
-        Text('连接稳定')
+        Text(this.dhtNodes > 200 ? '节点健康' : this.dhtNodes > 30 ? '连接中' : '搜索中')
           .fontSize(13)
           .fontWeight(FontWeight.Normal)
           .fontColor($r('app.color.text_secondary'))

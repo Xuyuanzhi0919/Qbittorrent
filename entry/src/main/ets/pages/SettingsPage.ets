@@ -204,21 +204,13 @@ export struct SettingsPage {
 
   @Builder
   headerSection() {
-    Column({ space: 4 }) {
-      Text('PREFERENCES')
-        .fontSize(12)
-        .fontWeight(FontWeight.Medium)
-        .letterSpacing(1)
-        .fontColor($r('app.color.text_secondary'))
-      Text('设置中心')
-        .fontSize(28)
-        .fontWeight(FontWeight.Bold)
-        .letterSpacing(-0.5)
-        .fontColor($r('app.color.text_primary'))
-    }
-    .width('100%')
-    .alignItems(HorizontalAlign.Start)
-    .margin({ bottom: 20 })
+    Text('设置')
+      .fontSize(28)
+      .fontWeight(FontWeight.Bold)
+      .letterSpacing(-0.5)
+      .fontColor($r('app.color.text_primary'))
+      .width('100%')
+      .margin({ bottom: 20 })
   }
 
   @Builder

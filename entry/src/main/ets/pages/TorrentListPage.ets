@@ -758,20 +758,11 @@ export struct TorrentListPage {
   @Builder
   headerSection() {
     Row() {
-      Column({ space: 4 }) {
-        Text('DOWNLOAD CENTER')
-          .fontSize(12)
-          .fontWeight(FontWeight.Medium)
-          .letterSpacing(1)
-          .fontColor($r('app.color.text_secondary'))
-        Text('下载管理')
-          .fontSize(28)
-          .fontWeight(FontWeight.Bold)
-          .letterSpacing(-0.5)
-          .fontColor($r('app.color.text_primary'))
-      }
-      .alignItems(HorizontalAlign.Start)
-      .width('100%')
+      Text('下载管理')
+        .fontSize(28)
+        .fontWeight(FontWeight.Bold)
+        .letterSpacing(-0.5)
+        .fontColor($r('app.color.text_primary'))
     }
     .width('100%')
     .height(46)
