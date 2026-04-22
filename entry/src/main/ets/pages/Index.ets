@@ -57,6 +57,7 @@ struct Index {
   @StorageLink('torrentListRefreshToken') torrentListRefreshToken: number = 0;
   @StorageLink('guestMode') guestMode: boolean = false;
   @StorageLink('isConnected') @Watch('onConnectedChanged') isConnected: boolean = false;
+  @StorageLink('showRootTabBar') @Watch('onTabBarVisibilityChanged') showRootTabBar: boolean = true;
   @State isLoading: boolean = true;
   @State bottomAvoidHeight: number = 0;
   private hdsTabsController: HdsTabsController = new HdsTabsController();
@@ -68,6 +69,7 @@ struct Index {
     AppStorage.setOrCreate('torrentListRefreshToken', 0);
     AppStorage.setOrCreate('guestMode', false);
     AppStorage.setOrCreate('rootTabBarReserveHeight', 0);
+    AppStorage.setOrCreate('showRootTabBar', true);
     AppService.setNavPathStack(this.navPathStack);
     this.getBottomAvoidArea();
     this.initApp();
@@ -100,6 +102,14 @@ struct Index {
   private onConnectedChanged(): void {
     if (!this.isConnected && !this.guestMode) {
       this.navPathStack.clear();
+    }
+  }
+
+  private onTabBarVisibilityChanged(): void {
+    if (this.showRootTabBar) {
+      this.hdsTabsController.showBar();
+    } else {
+      this.hdsTabsController.hideBar();
     }
   }
 
