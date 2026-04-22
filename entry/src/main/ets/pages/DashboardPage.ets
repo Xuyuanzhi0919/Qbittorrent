@@ -863,9 +863,8 @@ export struct DashboardPage {
           Row()
             .width('150%')
             .height(48)
-            .backgroundColor($r('app.color.dashboard_surface_info'))
+            .backgroundColor('#3D2563EB')
             .borderRadius({ topLeft: 160, topRight: 48 })
-            .opacity(0.72)
             .translate({ x: this.waveOffset ? -52 : 16 })
             .animation({
               duration: 5200,
@@ -876,9 +875,8 @@ export struct DashboardPage {
           Row()
             .width('130%')
             .height(30)
-            .backgroundColor($r('app.color.dashboard_surface_success'))
+            .backgroundColor('#2D16A34A')
             .borderRadius({ topLeft: 48, topRight: 140 })
-            .opacity(0.55)
             .translate({ x: this.waveOffset ? 40 : -16 })
             .animation({
               duration: 3900,
