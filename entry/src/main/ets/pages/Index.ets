@@ -107,9 +107,11 @@ struct Index {
 
   private onTabBarVisibilityChanged(): void {
     if (this.showRootTabBar) {
-      this.hdsTabsController.showBar();
+      this.hdsTabsController.setTabBarOpacity(1);
+      this.hdsTabsController.setTabBarTranslate({ y: 0 });
     } else {
-      this.hdsTabsController.hideBar();
+      this.hdsTabsController.setTabBarOpacity(0);
+      this.hdsTabsController.setTabBarTranslate({ y: 200 });
     }
   }
 
