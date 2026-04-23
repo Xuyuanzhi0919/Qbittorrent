@@ -668,6 +668,21 @@ export struct DashboardPage {
 
   build() {
     Stack() {
+      // Gradient background layer — gives glassmorphism cards their colour to blur through
+      Column() {
+        Row()
+          .width('100%')
+          .height(440)
+          .linearGradient({
+            angle: 180,
+            colors: [['#BFDBFE', 0], ['#E0F2FE', 0.5], ['#F1F5F9', 1]]
+          })
+        Blank()
+      }
+      .width('100%')
+      .height('100%')
+      .backgroundColor($r('app.color.page_background'))
+
       Refresh({ refreshing: $$this.isLoading }) {
         Scroll() {
           Column({ space: 12 }) {
@@ -693,7 +708,7 @@ export struct DashboardPage {
         .edgeEffect(EdgeEffect.Spring)
         .width('100%')
         .height('100%')
-        .backgroundColor($r('app.color.page_background'))
+        .backgroundColor(Color.Transparent)
         .blur(this.showGlobalLimitSheet || this.pendingDeleteHash.length > 0 ? 16 : 0)
         .animation({ duration: 220, curve: Curve.EaseOut })
       }
@@ -816,11 +831,9 @@ export struct DashboardPage {
           .fontColor($r('app.color.text_primary'))
       }
       .padding({ left: 12, right: 12, top: 8, bottom: 8 })
-      .backgroundColor($r('app.color.card_background'))
-      .border({
-        width: 1,
-        color: $r('app.color.dashboard_border')
-      })
+      .backgroundColor('#CCFFFFFF')
+      .backgroundBlurStyle(BlurStyle.COMPONENT_THIN)
+      .border({ width: 1, color: '#FFFFFFB3' })
       .borderRadius(999)
     }
     .width('100%')
@@ -922,18 +935,16 @@ export struct DashboardPage {
       }
     }
     .width('100%')
-    .backgroundColor($r('app.color.card_background'))
-    .border({
-      width: 1,
-      color: $r('app.color.dashboard_border')
-    })
+    .backgroundColor('#D9FFFFFF')
+    .backgroundBlurStyle(BlurStyle.COMPONENT_THIN)
+    .border({ width: 1, color: '#FFFFFFB3' })
     .borderRadius(28)
     .clip(true)
     .shadow({
-      radius: 14,
-      color: $r('app.color.dashboard_shadow'),
+      radius: 20,
+      color: '#0F172A14',
       offsetX: 0,
-      offsetY: 10
+      offsetY: 8
     })
   }
 
@@ -1044,8 +1055,9 @@ export struct DashboardPage {
         .padding(16)
         .alignItems(HorizontalAlign.Start)
         .justifyContent(FlexAlign.SpaceBetween)
-        .backgroundColor($r('app.color.card_background'))
-        .border({ width: 1, color: $r('app.color.dashboard_border') })
+        .backgroundColor('#CCFFFFFF')
+        .backgroundBlurStyle(BlurStyle.COMPONENT_THIN)
+        .border({ width: 1, color: '#FFFFFFB3' })
         .borderRadius(22)
 
         Column({ space: 10 }) {
@@ -1084,8 +1096,9 @@ export struct DashboardPage {
         .padding(16)
         .alignItems(HorizontalAlign.Start)
         .justifyContent(FlexAlign.SpaceBetween)
-        .backgroundColor($r('app.color.card_background'))
-        .border({ width: 1, color: $r('app.color.dashboard_border') })
+        .backgroundColor('#CCFFFFFF')
+        .backgroundBlurStyle(BlurStyle.COMPONENT_THIN)
+        .border({ width: 1, color: '#FFFFFFB3' })
         .borderRadius(22)
       }
       .width('100%')
@@ -1119,8 +1132,9 @@ export struct DashboardPage {
         .padding(16)
         .alignItems(HorizontalAlign.Start)
         .justifyContent(FlexAlign.SpaceBetween)
-        .backgroundColor($r('app.color.card_background'))
-        .border({ width: 1, color: $r('app.color.dashboard_border') })
+        .backgroundColor('#CCFFFFFF')
+        .backgroundBlurStyle(BlurStyle.COMPONENT_THIN)
+        .border({ width: 1, color: '#FFFFFFB3' })
         .borderRadius(22)
 
         Column({ space: 8 }) {
@@ -1150,8 +1164,9 @@ export struct DashboardPage {
         .padding(16)
         .alignItems(HorizontalAlign.Start)
         .justifyContent(FlexAlign.SpaceBetween)
-        .backgroundColor($r('app.color.card_background'))
-        .border({ width: 1, color: $r('app.color.dashboard_border') })
+        .backgroundColor('#CCFFFFFF')
+        .backgroundBlurStyle(BlurStyle.COMPONENT_THIN)
+        .border({ width: 1, color: '#FFFFFFB3' })
         .borderRadius(22)
       }
       .width('100%')
@@ -1208,11 +1223,9 @@ export struct DashboardPage {
     }
     .width('100%')
     .padding(12)
-    .backgroundColor($r('app.color.card_background'))
-    .border({
-      width: 1,
-      color: $r('app.color.dashboard_border')
-    })
+    .backgroundColor('#CCFFFFFF')
+    .backgroundBlurStyle(BlurStyle.COMPONENT_THIN)
+    .border({ width: 1, color: '#FFFFFFB3' })
     .borderRadius(24)
   }
 
@@ -1480,11 +1493,9 @@ export struct DashboardPage {
     }
     .width('100%')
     .padding({ left: 14, right: 14, top: 12, bottom: 12 })
-    .backgroundColor($r('app.color.card_background'))
-    .border({
-      width: 1,
-      color: $r('app.color.dashboard_border')
-    })
+    .backgroundColor('#CCFFFFFF')
+    .backgroundBlurStyle(BlurStyle.COMPONENT_THIN)
+    .border({ width: 1, color: '#FFFFFFB3' })
     .borderRadius(20)
     .alignItems(VerticalAlign.Center)
     .onClick(() => {
