@@ -831,9 +831,9 @@ export struct DashboardPage {
           .fontColor($r('app.color.text_primary'))
       }
       .padding({ left: 12, right: 12, top: 8, bottom: 8 })
-      .backgroundColor('#CCFFFFFF')
-      .backgroundBlurStyle(BlurStyle.COMPONENT_THIN)
-      .border({ width: 1, color: '#FFFFFFB3' })
+      .backgroundColor('rgba(255,255,255,0.2)')
+      .backdropBlur(24)
+      .border({ width: 1, color: 'rgba(255,255,255,0.45)' })
       .borderRadius(999)
     }
     .width('100%')
@@ -935,9 +935,9 @@ export struct DashboardPage {
       }
     }
     .width('100%')
-    .backgroundColor('#D9FFFFFF')
-    .backgroundBlurStyle(BlurStyle.COMPONENT_THIN)
-    .border({ width: 1, color: '#FFFFFFB3' })
+    .backgroundColor('rgba(255,255,255,0.25)')
+    .backdropBlur(28)
+    .border({ width: 1, color: 'rgba(255,255,255,0.45)' })
     .borderRadius(28)
     .clip(true)
     .shadow({
@@ -1055,9 +1055,9 @@ export struct DashboardPage {
         .padding(16)
         .alignItems(HorizontalAlign.Start)
         .justifyContent(FlexAlign.SpaceBetween)
-        .backgroundColor('#CCFFFFFF')
-        .backgroundBlurStyle(BlurStyle.COMPONENT_THIN)
-        .border({ width: 1, color: '#FFFFFFB3' })
+        .backgroundColor('rgba(255,255,255,0.2)')
+        .backdropBlur(24)
+        .border({ width: 1, color: 'rgba(255,255,255,0.45)' })
         .borderRadius(22)
 
         Column({ space: 10 }) {
@@ -1096,9 +1096,9 @@ export struct DashboardPage {
         .padding(16)
         .alignItems(HorizontalAlign.Start)
         .justifyContent(FlexAlign.SpaceBetween)
-        .backgroundColor('#CCFFFFFF')
-        .backgroundBlurStyle(BlurStyle.COMPONENT_THIN)
-        .border({ width: 1, color: '#FFFFFFB3' })
+        .backgroundColor('rgba(255,255,255,0.2)')
+        .backdropBlur(24)
+        .border({ width: 1, color: 'rgba(255,255,255,0.45)' })
         .borderRadius(22)
       }
       .width('100%')
@@ -1132,9 +1132,9 @@ export struct DashboardPage {
         .padding(16)
         .alignItems(HorizontalAlign.Start)
         .justifyContent(FlexAlign.SpaceBetween)
-        .backgroundColor('#CCFFFFFF')
-        .backgroundBlurStyle(BlurStyle.COMPONENT_THIN)
-        .border({ width: 1, color: '#FFFFFFB3' })
+        .backgroundColor('rgba(255,255,255,0.2)')
+        .backdropBlur(24)
+        .border({ width: 1, color: 'rgba(255,255,255,0.45)' })
         .borderRadius(22)
 
         Column({ space: 8 }) {
@@ -1164,9 +1164,9 @@ export struct DashboardPage {
         .padding(16)
         .alignItems(HorizontalAlign.Start)
         .justifyContent(FlexAlign.SpaceBetween)
-        .backgroundColor('#CCFFFFFF')
-        .backgroundBlurStyle(BlurStyle.COMPONENT_THIN)
-        .border({ width: 1, color: '#FFFFFFB3' })
+        .backgroundColor('rgba(255,255,255,0.2)')
+        .backdropBlur(24)
+        .border({ width: 1, color: 'rgba(255,255,255,0.45)' })
         .borderRadius(22)
       }
       .width('100%')
@@ -1223,9 +1223,9 @@ export struct DashboardPage {
     }
     .width('100%')
     .padding(12)
-    .backgroundColor('#CCFFFFFF')
-    .backgroundBlurStyle(BlurStyle.COMPONENT_THIN)
-    .border({ width: 1, color: '#FFFFFFB3' })
+    .backgroundColor('rgba(255,255,255,0.2)')
+    .backdropBlur(24)
+    .border({ width: 1, color: 'rgba(255,255,255,0.45)' })
     .borderRadius(24)
   }
 
@@ -1493,9 +1493,9 @@ export struct DashboardPage {
     }
     .width('100%')
     .padding({ left: 14, right: 14, top: 12, bottom: 12 })
-    .backgroundColor('#CCFFFFFF')
-    .backgroundBlurStyle(BlurStyle.COMPONENT_THIN)
-    .border({ width: 1, color: '#FFFFFFB3' })
+    .backgroundColor('rgba(255,255,255,0.2)')
+    .backdropBlur(24)
+    .border({ width: 1, color: 'rgba(255,255,255,0.45)' })
     .borderRadius(20)
     .alignItems(VerticalAlign.Center)
     .onClick(() => {
