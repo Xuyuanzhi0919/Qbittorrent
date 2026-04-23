@@ -676,11 +676,7 @@ export struct DashboardPage {
             }
             this.headerSection()
             this.heroSection()
-            Row({ space: 12 }) {
-              this.activeTaskCard()
-              this.dhtCard()
-            }
-            .width('100%')
+            this.bentoGrid()
 
             this.tasksSection()
             this.globalSpeedLimitCard()
@@ -910,12 +906,6 @@ export struct DashboardPage {
           .width('100%')
           .alignItems(VerticalAlign.Center)
 
-          Column({ space: 8 }) {
-            this.downloadSpeedLine()
-            this.uploadSpeedLine()
-          }
-          .width('100%')
-
           Row({ space: 8 }) {
             this.averageSpeedChip()
             this.peakSpeedChip()
@@ -945,46 +935,6 @@ export struct DashboardPage {
       offsetX: 0,
       offsetY: 10
     })
-  }
-
-  @Builder
-  downloadSpeedLine() {
-    Row({ space: 6 }) {
-      Circle()
-        .width(8)
-        .height(8)
-        .fill($r('app.color.success_color'))
-      Text(`下载 ${this.formatDashboardSpeed(this.dlSpeed)}`)
-        .fontSize(12)
-        .fontWeight(FontWeight.Medium)
-        .fontColor($r('app.color.success_color'))
-        .maxLines(1)
-        .textOverflow({ overflow: TextOverflow.Ellipsis })
-    }
-    .width('100%')
-    .padding({ left: 10, right: 10, top: 6, bottom: 6 })
-    .backgroundColor($r('app.color.dashboard_surface_success'))
-    .borderRadius(999)
-  }
-
-  @Builder
-  uploadSpeedLine() {
-    Row({ space: 6 }) {
-      Circle()
-        .width(8)
-        .height(8)
-        .fill($r('app.color.warning_color'))
-      Text(`上传 ${this.formatDashboardSpeed(this.ulSpeed)}`)
-        .fontSize(12)
-        .fontWeight(FontWeight.Medium)
-        .fontColor($r('app.color.warning_color'))
-        .maxLines(1)
-        .textOverflow({ overflow: TextOverflow.Ellipsis })
-    }
-    .width('100%')
-    .padding({ left: 10, right: 10, top: 6, bottom: 6 })
-    .backgroundColor($r('app.color.dashboard_surface_warning'))
-    .borderRadius(999)
   }
 
   @Builder
@@ -1054,114 +1004,159 @@ export struct DashboardPage {
   }
 
   @Builder
-  activeTaskCard() {
-    Column({ space: 14 }) {
-      Row({ space: 8 }) {
-        SymbolGlyph($r('sys.symbol.arrow_down'))
-          .fontSize(14)
-          .fontColor([$r('app.color.accent_color')])
-        Text('活跃任务')
-          .fontSize(12)
-          .fontWeight(FontWeight.Medium)
-          .letterSpacing(0.6)
-          .fontColor($r('app.color.text_secondary'))
-      }
-
-      if (this.isLoading) {
+  bentoGrid() {
+    Column({ space: 10 }) {
+      // Top row: download speed + upload speed
+      Row({ space: 10 }) {
         Column({ space: 10 }) {
-          Row()
-            .width(40)
-            .height(30)
-            .backgroundColor($r('app.color.dashboard_border'))
-            .borderRadius(14)
-          Row()
-            .width(92)
-            .height(12)
-            .backgroundColor($r('app.color.dashboard_surface_info'))
-            .borderRadius(999)
+          Row({ space: 6 }) {
+            Circle()
+              .width(7)
+              .height(7)
+              .fill($r('app.color.success_color'))
+            Text('下载速度')
+              .fontSize(11)
+              .fontWeight(FontWeight.Medium)
+              .fontColor($r('app.color.text_secondary'))
+          }
+          if (this.isLoading) {
+            Row()
+              .width(100)
+              .height(32)
+              .backgroundColor($r('app.color.dashboard_border'))
+              .borderRadius(10)
+          } else {
+            Text(this.formatDashboardSpeed(this.dlSpeed))
+              .fontSize(26)
+              .fontWeight(FontWeight.Bold)
+              .letterSpacing(-0.5)
+              .fontColor($r('app.color.text_primary'))
+              .maxLines(1)
+              .textOverflow({ overflow: TextOverflow.Ellipsis })
+          }
+          Text(this.dlRateLimit > 0 ? `限速 ${this.formatDashboardSpeed(this.dlRateLimit)}` : '不限速')
+            .fontSize(11)
+            .fontWeight(FontWeight.Normal)
+            .fontColor($r('app.color.tab_inactive_fg'))
         }
+        .layoutWeight(1)
+        .height(108)
+        .padding(16)
         .alignItems(HorizontalAlign.Start)
-      } else {
-        Text(`${this.downloadingCount}`)
-          .fontSize(32)
-          .fontWeight(FontWeight.Bold)
-          .fontColor($r('app.color.text_primary'))
+        .justifyContent(FlexAlign.SpaceBetween)
+        .backgroundColor($r('app.color.card_background'))
+        .border({ width: 1, color: $r('app.color.dashboard_border') })
+        .borderRadius(22)
 
-        Text('个任务下载中')
-          .fontSize(13)
-          .fontWeight(FontWeight.Medium)
-          .fontColor($r('app.color.accent_color'))
-      }
-    }
-    .layoutWeight(1)
-    .height(132)
-    .padding(14)
-    .justifyContent(FlexAlign.SpaceBetween)
-    .alignItems(HorizontalAlign.Start)
-    .backgroundColor($r('app.color.card_background'))
-    .border({
-      width: 1,
-      color: $r('app.color.dashboard_border')
-    })
-    .borderRadius(24)
-  }
-
-  @Builder
-  dhtCard() {
-    Column({ space: 14 }) {
-      Row({ space: 8 }) {
-        Row()
-          .width(14)
-          .height(14)
-          .border({
-            width: 1.5,
-            color: $r('app.color.text_primary')
-          })
-          .borderRadius(999)
-        Text('DHT 节点')
-          .fontSize(12)
-          .fontWeight(FontWeight.Medium)
-          .letterSpacing(0.6)
-          .fontColor($r('app.color.text_secondary'))
-      }
-
-      if (this.isLoading) {
         Column({ space: 10 }) {
-          Row()
-            .width(40)
-            .height(28)
-            .backgroundColor($r('app.color.dashboard_border'))
-            .borderRadius(14)
-          Row()
-            .width(68)
-            .height(12)
-            .backgroundColor($r('app.color.dashboard_surface_muted'))
-            .borderRadius(999)
+          Row({ space: 6 }) {
+            Circle()
+              .width(7)
+              .height(7)
+              .fill($r('app.color.warning_color'))
+            Text('上传速度')
+              .fontSize(11)
+              .fontWeight(FontWeight.Medium)
+              .fontColor($r('app.color.text_secondary'))
+          }
+          if (this.isLoading) {
+            Row()
+              .width(80)
+              .height(32)
+              .backgroundColor($r('app.color.dashboard_border'))
+              .borderRadius(10)
+          } else {
+            Text(this.formatDashboardSpeed(this.ulSpeed))
+              .fontSize(26)
+              .fontWeight(FontWeight.Bold)
+              .letterSpacing(-0.5)
+              .fontColor($r('app.color.text_primary'))
+              .maxLines(1)
+              .textOverflow({ overflow: TextOverflow.Ellipsis })
+          }
+          Text(this.ulRateLimit > 0 ? `限速 ${this.formatDashboardSpeed(this.ulRateLimit)}` : '不限速')
+            .fontSize(11)
+            .fontWeight(FontWeight.Normal)
+            .fontColor($r('app.color.tab_inactive_fg'))
         }
+        .layoutWeight(1)
+        .height(108)
+        .padding(16)
         .alignItems(HorizontalAlign.Start)
-      } else {
-        Text(`${this.dhtNodes}`)
-          .fontSize(30)
-          .fontWeight(FontWeight.Bold)
-          .fontColor($r('app.color.text_primary'))
-
-        Text(this.dhtNodes > 200 ? '节点健康' : this.dhtNodes > 30 ? '连接中' : '搜索中')
-          .fontSize(13)
-          .fontWeight(FontWeight.Normal)
-          .fontColor($r('app.color.text_secondary'))
+        .justifyContent(FlexAlign.SpaceBetween)
+        .backgroundColor($r('app.color.card_background'))
+        .border({ width: 1, color: $r('app.color.dashboard_border') })
+        .borderRadius(22)
       }
+      .width('100%')
+
+      // Bottom row: tasks count + DHT nodes
+      Row({ space: 10 }) {
+        Column({ space: 8 }) {
+          Text('下载任务')
+            .fontSize(11)
+            .fontWeight(FontWeight.Medium)
+            .fontColor($r('app.color.text_secondary'))
+          if (this.isLoading) {
+            Row()
+              .width(48)
+              .height(26)
+              .backgroundColor($r('app.color.dashboard_border'))
+              .borderRadius(8)
+          } else {
+            Text(`${this.downloadingCount}`)
+              .fontSize(28)
+              .fontWeight(FontWeight.Bold)
+              .fontColor($r('app.color.text_primary'))
+          }
+          Text('个任务下载中')
+            .fontSize(11)
+            .fontWeight(FontWeight.Normal)
+            .fontColor($r('app.color.accent_color'))
+        }
+        .layoutWeight(1)
+        .height(92)
+        .padding(16)
+        .alignItems(HorizontalAlign.Start)
+        .justifyContent(FlexAlign.SpaceBetween)
+        .backgroundColor($r('app.color.card_background'))
+        .border({ width: 1, color: $r('app.color.dashboard_border') })
+        .borderRadius(22)
+
+        Column({ space: 8 }) {
+          Text('DHT 节点')
+            .fontSize(11)
+            .fontWeight(FontWeight.Medium)
+            .fontColor($r('app.color.text_secondary'))
+          if (this.isLoading) {
+            Row()
+              .width(56)
+              .height(26)
+              .backgroundColor($r('app.color.dashboard_border'))
+              .borderRadius(8)
+          } else {
+            Text(`${this.dhtNodes}`)
+              .fontSize(28)
+              .fontWeight(FontWeight.Bold)
+              .fontColor($r('app.color.text_primary'))
+          }
+          Text(this.dhtNodes > 200 ? '节点健康' : this.dhtNodes > 30 ? '连接中' : '搜索中')
+            .fontSize(11)
+            .fontWeight(FontWeight.Normal)
+            .fontColor($r('app.color.text_secondary'))
+        }
+        .layoutWeight(1)
+        .height(92)
+        .padding(16)
+        .alignItems(HorizontalAlign.Start)
+        .justifyContent(FlexAlign.SpaceBetween)
+        .backgroundColor($r('app.color.card_background'))
+        .border({ width: 1, color: $r('app.color.dashboard_border') })
+        .borderRadius(22)
+      }
+      .width('100%')
     }
-    .layoutWeight(1)
-    .height(132)
-    .padding(14)
-    .justifyContent(FlexAlign.SpaceBetween)
-    .alignItems(HorizontalAlign.Start)
-    .backgroundColor($r('app.color.card_background'))
-    .border({
-      width: 1,
-      color: $r('app.color.dashboard_border')
-    })
-    .borderRadius(24)
+    .width('100%')
   }
 
   @Builder
