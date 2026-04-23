@@ -69,6 +69,12 @@
     { "name": "download_sheet_surface", "value": "#FBFDFF" },
     { "name": "download_warn_border", "value": "#F7CACA" },
     { "name": "download_pause_bg", "value": "#FFF6E6" },
-    { "name": "download_pause_fg", "value": "#C28100" }
+    { "name": "download_pause_fg", "value": "#C28100" },
+    { "name": "page_gradient_top", "value": "#BFDBFE" },
+    { "name": "page_gradient_mid", "value": "#E0F2FE" },
+    { "name": "glass_bg_card", "value": "#33FFFFFF" },
+    { "name": "glass_bg_chip", "value": "#59FFFFFF" },
+    { "name": "glass_bg_elevated", "value": "#8CFFFFFF" },
+    { "name": "glass_border", "value": "#73FFFFFF" }
   ]
 }
