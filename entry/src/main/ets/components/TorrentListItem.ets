@@ -110,22 +110,11 @@ export struct TorrentListItem {
     .width('100%')
     .padding({ left: 14, right: 14, top: 12, bottom: 12 })
     .backgroundColor(this.isSelected ? $r('app.color.download_selected_bg') : $r('app.color.card_background'))
-    .borderRadius(16)
-    .border(this.isSelected ? {
-      width: 1.5,
-      color: $r('app.color.download_selected_border')
-    } : { width: 0, color: Color.Transparent })
-    .shadow(this.isSelected ? {
-      radius: 0,
-      color: Color.Transparent,
-      offsetX: 0,
-      offsetY: 0
-    } : {
-      radius: 12,
-      color: '#0F172A0E',
-      offsetX: 0,
-      offsetY: 3
+    .border({
+      width: 1,
+      color: this.isSelected ? $r('app.color.download_selected_border') : $r('app.color.dashboard_border')
     })
+    .borderRadius(16)
     .onClick(() => {
       if (this.selectionMode) {
         if (this.onToggleSelect) {

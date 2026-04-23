@@ -923,13 +923,17 @@ export struct DashboardPage {
     }
     .width('100%')
     .backgroundColor($r('app.color.card_background'))
+    .border({
+      width: 1,
+      color: $r('app.color.dashboard_border')
+    })
     .borderRadius(28)
     .clip(true)
     .shadow({
-      radius: 24,
-      color: '#0F172A1A',
+      radius: 14,
+      color: $r('app.color.dashboard_shadow'),
       offsetX: 0,
-      offsetY: 8
+      offsetY: 10
     })
   }
 
@@ -1002,55 +1006,48 @@ export struct DashboardPage {
   @Builder
   bentoGrid() {
     Column({ space: 10 }) {
-      // Top row: download (dark featured) + upload (light)
+      // Top row: download speed + upload speed
       Row({ space: 10 }) {
-        // Download — dark featured card
         Column({ space: 10 }) {
           Row({ space: 6 }) {
             Circle()
               .width(7)
               .height(7)
-              .fill('#60A5FA')
+              .fill($r('app.color.success_color'))
             Text('下载速度')
               .fontSize(11)
               .fontWeight(FontWeight.Medium)
-              .fontColor('#FFFFFF60')
+              .fontColor($r('app.color.text_secondary'))
           }
           if (this.isLoading) {
             Row()
               .width(100)
               .height(32)
-              .backgroundColor('#1E293B')
+              .backgroundColor($r('app.color.dashboard_border'))
               .borderRadius(10)
           } else {
             Text(this.formatDashboardSpeed(this.dlSpeed))
               .fontSize(26)
               .fontWeight(FontWeight.Bold)
               .letterSpacing(-0.5)
-              .fontColor('#FFFFFF')
+              .fontColor($r('app.color.text_primary'))
               .maxLines(1)
               .textOverflow({ overflow: TextOverflow.Ellipsis })
           }
           Text(this.dlRateLimit > 0 ? `限速 ${this.formatDashboardSpeed(this.dlRateLimit)}` : '不限速')
             .fontSize(11)
             .fontWeight(FontWeight.Normal)
-            .fontColor('#FFFFFF40')
+            .fontColor($r('app.color.tab_inactive_fg'))
         }
         .layoutWeight(1)
         .height(108)
         .padding(16)
         .alignItems(HorizontalAlign.Start)
         .justifyContent(FlexAlign.SpaceBetween)
-        .backgroundColor('#0F172A')
+        .backgroundColor($r('app.color.card_background'))
+        .border({ width: 1, color: $r('app.color.dashboard_border') })
         .borderRadius(22)
-        .shadow({
-          radius: 28,
-          color: '#2563EB38',
-          offsetX: 0,
-          offsetY: 8
-        })
 
-        // Upload — light card
         Column({ space: 10 }) {
           Row({ space: 6 }) {
             Circle()
@@ -1088,13 +1085,8 @@ export struct DashboardPage {
         .alignItems(HorizontalAlign.Start)
         .justifyContent(FlexAlign.SpaceBetween)
         .backgroundColor($r('app.color.card_background'))
+        .border({ width: 1, color: $r('app.color.dashboard_border') })
         .borderRadius(22)
-        .shadow({
-          radius: 16,
-          color: '#0F172A12',
-          offsetX: 0,
-          offsetY: 4
-        })
       }
       .width('100%')
 
@@ -1128,13 +1120,8 @@ export struct DashboardPage {
         .alignItems(HorizontalAlign.Start)
         .justifyContent(FlexAlign.SpaceBetween)
         .backgroundColor($r('app.color.card_background'))
+        .border({ width: 1, color: $r('app.color.dashboard_border') })
         .borderRadius(22)
-        .shadow({
-          radius: 16,
-          color: '#0F172A12',
-          offsetX: 0,
-          offsetY: 4
-        })
 
         Column({ space: 8 }) {
           Text('DHT 节点')
@@ -1164,13 +1151,8 @@ export struct DashboardPage {
         .alignItems(HorizontalAlign.Start)
         .justifyContent(FlexAlign.SpaceBetween)
         .backgroundColor($r('app.color.card_background'))
+        .border({ width: 1, color: $r('app.color.dashboard_border') })
         .borderRadius(22)
-        .shadow({
-          radius: 16,
-          color: '#0F172A12',
-          offsetX: 0,
-          offsetY: 4
-        })
       }
       .width('100%')
     }
@@ -1227,13 +1209,11 @@ export struct DashboardPage {
     .width('100%')
     .padding(12)
     .backgroundColor($r('app.color.card_background'))
-    .borderRadius(24)
-    .shadow({
-      radius: 16,
-      color: '#0F172A12',
-      offsetX: 0,
-      offsetY: 4
+    .border({
+      width: 1,
+      color: $r('app.color.dashboard_border')
     })
+    .borderRadius(24)
   }
 
   @Builder
@@ -1501,14 +1481,12 @@ export struct DashboardPage {
     .width('100%')
     .padding({ left: 14, right: 14, top: 12, bottom: 12 })
     .backgroundColor($r('app.color.card_background'))
+    .border({
+      width: 1,
+      color: $r('app.color.dashboard_border')
+    })
     .borderRadius(20)
     .alignItems(VerticalAlign.Center)
-    .shadow({
-      radius: 16,
-      color: '#0F172A12',
-      offsetX: 0,
-      offsetY: 4
-    })
     .onClick(() => {
       this.openGlobalLimitSheet();
     })
