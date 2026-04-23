@@ -32,8 +32,8 @@ struct WaveCanvas {
     const period: number = this.canvasW * 0.85;
     this.offset1 = (this.offset1 + 1.8) % period;
     this.offset2 = (this.offset2 + 1.1) % period;
-    this.drawWave(this.offset1, period, 'rgba(37,99,235,0.22)', 0);
-    this.drawWave(this.offset2, period, 'rgba(22,163,74,0.15)', -6);
+    this.drawWave(this.offset1, period, 'rgba(37,99,235,0.32)', 0);
+    this.drawWave(this.offset2, period, 'rgba(22,163,74,0.22)', -6);
   }
 
   private drawWave(offset: number, period: number, color: string, yOff: number): void {
@@ -965,9 +965,9 @@ export struct DashboardPage {
     }
     .layoutWeight(1)
     .padding({ left: 10, right: 10, top: 12, bottom: 12 })
-    .backgroundColor($r('app.color.dashboard_surface_soft'))
+    .backgroundColor('rgba(255,255,255,0.35)')
     .borderRadius(18)
-    .alignItems(HorizontalAlign.Center)
+    .alignItems(HorizontalAlign.Start)
   }
 
   @Builder
@@ -987,7 +987,7 @@ export struct DashboardPage {
     }
     .layoutWeight(1)
     .padding({ left: 10, right: 10, top: 12, bottom: 12 })
-    .backgroundColor($r('app.color.dashboard_surface_soft'))
+    .backgroundColor('rgba(255,255,255,0.35)')
     .borderRadius(18)
     .alignItems(HorizontalAlign.Start)
   }
@@ -1009,7 +1009,7 @@ export struct DashboardPage {
     }
     .layoutWeight(1)
     .padding({ left: 10, right: 10, top: 12, bottom: 12 })
-    .backgroundColor($r('app.color.dashboard_surface_soft'))
+    .backgroundColor('rgba(255,255,255,0.35)')
     .borderRadius(18)
     .alignItems(HorizontalAlign.Start)
   }
@@ -1291,11 +1291,7 @@ export struct DashboardPage {
     }
     .width('100%')
     .padding({ left: 12, right: 12, top: 10, bottom: 10 })
-    .backgroundColor($r('app.color.dashboard_surface_soft'))
-    .border({
-      width: 1,
-      color: $r('app.color.dashboard_border_soft')
-    })
+    .backgroundColor('rgba(255,255,255,0.4)')
     .borderRadius(18)
   }
 
@@ -1313,7 +1309,7 @@ export struct DashboardPage {
     }
     .width('100%')
     .padding(14)
-    .backgroundColor($r('app.color.dashboard_surface_soft'))
+    .backgroundColor('rgba(255,255,255,0.3)')
     .borderRadius(20)
     .alignItems(HorizontalAlign.Start)
   }
@@ -1352,11 +1348,7 @@ export struct DashboardPage {
     }
     .width('100%')
     .padding({ left: 12, right: 12, top: 10, bottom: 10 })
-    .backgroundColor($r('app.color.card_background'))
-    .border({
-      width: 1,
-      color: $r('app.color.dashboard_border_soft')
-    })
+    .backgroundColor('rgba(255,255,255,0.55)')
     .borderRadius(18)
     .alignItems(VerticalAlign.Top)
     .onClick(() => {
@@ -1462,7 +1454,7 @@ export struct DashboardPage {
     }
     .width('100%')
     .padding(10)
-    .backgroundColor($r('app.color.dashboard_surface_soft'))
+    .backgroundColor('rgba(255,255,255,0.3)')
     .borderRadius(20)
     .alignItems(HorizontalAlign.Start)
   }
