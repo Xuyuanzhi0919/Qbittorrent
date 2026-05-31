@@ -10,3 +10,6 @@
 /.clang-tidy
 **/.test
 /.appanalyzer
+.DS_Store
+/pictures/1080x1920/
+/pictures/Screenshot_*.png
