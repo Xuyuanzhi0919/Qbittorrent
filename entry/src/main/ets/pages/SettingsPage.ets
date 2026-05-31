@@ -16,6 +16,7 @@ export struct SettingsPage {
   @State serverUsername: string = '';
   @State pollingInterval: number = AppConstants.DEFAULT_POLLING_INTERVAL;
   @State isDisconnecting: boolean = false;
+  @State isReconnecting: boolean = false;
   @State actionMessage: string = '';
   @State @Watch('onAnySheetChanged') showDisconnectConfirm: boolean = false;
   private actionMessageTimer: number = -1;
@@ -63,6 +64,37 @@ export struct SettingsPage {
     } finally {
       this.isDisconnecting = false;
       this.showDisconnectConfirm = false;
+    }
+  }
+
+  private async handleReconnect(): Promise<void> {
+    if (this.isReconnecting || this.guestMode) {
+      return;
+    }
+    this.isReconnecting = true;
+    try {
+      let hasConfig: boolean = this.connectionManager.serverConfig !== null;
+      if (!hasConfig) {
+        hasConfig = await this.connectionManager.loadSavedConfig();
+      }
+      if (!hasConfig) {
+        this.showActionMessage('未找到服务器配置');
+        return;
+      }
+      const connected: boolean = await this.connectionManager.autoReconnect();
+      this.isConnected = connected;
+      if (connected) {
+        const config = this.connectionManager.serverConfig;
+        if (config !== null) {
+          this.serverUrl = config.url;
+          this.serverUsername = config.username;
+        }
+        this.showActionMessage('已重新连接服务器');
+        return;
+      }
+      this.showActionMessage('重新连接失败，请检查密码或网络');
+    } finally {
+      this.isReconnecting = false;
     }
   }
 
@@ -415,6 +447,14 @@ export struct SettingsPage {
       this.settingsRow('登录账户', this.getAccountText(), $r('sys.symbol.person'), () => {
         this.openServerConfig();
       })
+
+      if (!this.guestMode) {
+        Divider()
+          .color($r('app.color.dashboard_border_soft'))
+          .margin({ left: 52 })
+
+        this.reconnectRow()
+      }
     }
     .width('100%')
     .backgroundColor($r('app.color.glass_bg_card'))
@@ -461,6 +501,60 @@ export struct SettingsPage {
     .padding({ left: 14, right: 14, top: 14, bottom: 14 })
     .alignItems(VerticalAlign.Center)
     .onClick(action)
+  }
+
+  @Builder
+  reconnectRow() {
+    Row({ space: 12 }) {
+      Row() {
+        if (this.isReconnecting) {
+          LoadingProgress()
+            .width(16)
+            .height(16)
+            .color($r('app.color.accent_color'))
+        } else {
+          SymbolGlyph($r('sys.symbol.arrow_2_circlepath'))
+            .fontSize(16)
+            .fontColor([$r('app.color.accent_color')])
+        }
+      }
+      .width(28)
+      .height(28)
+      .justifyContent(FlexAlign.Center)
+      .alignItems(VerticalAlign.Center)
+      .backgroundColor($r('app.color.dashboard_surface_info'))
+      .borderRadius(999)
+
+      Column({ space: 3 }) {
+        Text(this.isReconnecting ? '正在重新连接' : '重新连接')
+          .fontSize(14)
+          .fontWeight(FontWeight.Medium)
+          .fontColor($r('app.color.text_primary'))
+        Text('使用已保存的服务器配置恢复会话')
+          .fontSize(12)
+          .fontColor($r('app.color.text_secondary'))
+          .maxLines(1)
+          .textOverflow({ overflow: TextOverflow.Ellipsis })
+      }
+      .layoutWeight(1)
+      .alignItems(HorizontalAlign.Start)
+
+      Text(this.isConnected ? '刷新' : '连接')
+        .fontSize(12)
+        .fontWeight(FontWeight.Medium)
+        .fontColor($r('app.color.accent_color'))
+        .padding({ left: 12, right: 12, top: 7, bottom: 7 })
+        .backgroundColor($r('app.color.dashboard_surface_info'))
+        .border({ width: 1, color: $r('app.color.download_selected_border') })
+        .borderRadius(999)
+    }
+    .width('100%')
+    .padding({ left: 14, right: 14, top: 14, bottom: 14 })
+    .alignItems(VerticalAlign.Center)
+    .enabled(!this.isReconnecting)
+    .onClick(() => {
+      this.handleReconnect();
+    })
   }
 
   @Builder
