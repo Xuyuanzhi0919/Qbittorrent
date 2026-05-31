@@ -1237,9 +1237,8 @@ export struct DashboardPage {
         .padding(16)
         .alignItems(HorizontalAlign.Start)
         .justifyContent(FlexAlign.SpaceBetween)
-        .backgroundColor($r('app.color.glass_bg_card'))
-        .backdropBlur(24)
-        .border({ width: 1, color: $r('app.color.glass_border') })
+        .backgroundColor($r('app.color.dashboard_surface_success'))
+        .border({ width: 1, color: $r('app.color.dashboard_border') })
         .borderRadius(20)
 
         Column({ space: 10 }) {
@@ -1279,9 +1278,8 @@ export struct DashboardPage {
         .padding(16)
         .alignItems(HorizontalAlign.Start)
         .justifyContent(FlexAlign.SpaceBetween)
-        .backgroundColor($r('app.color.glass_bg_card'))
-        .backdropBlur(24)
-        .border({ width: 1, color: $r('app.color.glass_border') })
+        .backgroundColor($r('app.color.dashboard_surface_warning'))
+        .border({ width: 1, color: $r('app.color.dashboard_border') })
         .borderRadius(20)
       }
       .width('100%')
@@ -1315,9 +1313,8 @@ export struct DashboardPage {
         .padding(16)
         .alignItems(HorizontalAlign.Start)
         .justifyContent(FlexAlign.SpaceBetween)
-        .backgroundColor($r('app.color.glass_bg_card'))
-        .backdropBlur(24)
-        .border({ width: 1, color: $r('app.color.glass_border') })
+        .backgroundColor($r('app.color.dashboard_surface_info'))
+        .border({ width: 1, color: $r('app.color.dashboard_border') })
         .borderRadius(20)
 
         Column({ space: 8 }) {
@@ -1347,9 +1344,8 @@ export struct DashboardPage {
         .padding(16)
         .alignItems(HorizontalAlign.Start)
         .justifyContent(FlexAlign.SpaceBetween)
-        .backgroundColor($r('app.color.glass_bg_card'))
-        .backdropBlur(24)
-        .border({ width: 1, color: $r('app.color.glass_border') })
+        .backgroundColor($r('app.color.dashboard_surface_soft'))
+        .border({ width: 1, color: $r('app.color.dashboard_border') })
         .borderRadius(20)
       }
       .width('100%')
