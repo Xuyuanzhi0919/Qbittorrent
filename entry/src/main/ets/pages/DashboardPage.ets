@@ -787,33 +787,46 @@ export struct DashboardPage {
 
   build() {
     Stack() {
-      Refresh({ refreshing: $$this.isLoading }) {
-        Scroll() {
+      Column({ space: 0 }) {
+        Column() {
           Column({ space: 12 }) {
+            this.headerSection()
             if (this.actionMessage.length > 0) {
               this.actionBanner()
             }
-            this.headerSection()
-            this.heroSection()
-            this.bentoGrid()
-
-            this.tasksSection()
-            this.globalSpeedLimitCard()
           }
           .width('100%')
-          .padding({ left: 20, right: 20, top: 62, bottom: this.rootTabBarReserveHeight + 12 })
+          .padding({ left: 20, right: 20, top: 62, bottom: 12 })
         }
-        .scrollBar(BarState.Off)
-        .edgeEffect(EdgeEffect.Spring)
         .width('100%')
-        .height('100%')
         .backgroundColor(Color.Transparent)
-        .blur(this.showGlobalLimitSheet || this.pendingDeleteHash.length > 0 ? 16 : 0)
-        .animation({ duration: 220, curve: Curve.EaseOut })
+
+        Refresh({ refreshing: $$this.isLoading }) {
+          Scroll() {
+            Column({ space: 12 }) {
+              this.heroSection()
+              this.bentoGrid()
+
+              this.tasksSection()
+              this.globalSpeedLimitCard()
+              Blank().height(this.rootTabBarReserveHeight)
+            }
+            .width('100%')
+            .padding({ left: 20, right: 20, top: 0, bottom: 12 })
+          }
+          .scrollBar(BarState.Off)
+          .edgeEffect(EdgeEffect.Spring)
+          .width('100%')
+          .height('100%')
+          .backgroundColor(Color.Transparent)
+        }
+        .onRefreshing(() => {
+          this.refreshData(true);
+        })
+        .width('100%')
+        .layoutWeight(1)
+        .backgroundColor(Color.Transparent)
       }
-      .onRefreshing(() => {
-        this.refreshData(true);
-      })
       .width('100%')
       .height('100%')
       .backgroundColor(Color.Transparent)
@@ -826,6 +839,8 @@ export struct DashboardPage {
           [$r('app.color.page_background'), 1]
         ]
       })
+      .blur(this.showGlobalLimitSheet || this.pendingDeleteHash.length > 0 ? 16 : 0)
+      .animation({ duration: 220, curve: Curve.EaseOut })
 
       if (this.pendingDeleteHash.length > 0) {
         this.deleteConfirmDialog()
