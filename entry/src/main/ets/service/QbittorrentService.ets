@@ -34,6 +34,13 @@ export class QbittorrentService {
     return this.connectionManager.getApi();
   }
 
+  private handleApiFailure(statusCode: number): void {
+    if (statusCode === 401 || statusCode === 403) {
+      this.connectionManager.markSessionExpired();
+      AppStorage.setOrCreate('isConnected', false);
+    }
+  }
+
   async fetchTransferInfo(): Promise<TransferInfo | null> {
     hilog.info(AppConstants.LOG_DOMAIN, AppConstants.LOG_TAG,
       `QbittorrentService.fetchTransferInfo: isConnected=${this.connectionManager.isConnected}`);
@@ -50,6 +57,7 @@ export class QbittorrentService {
         `QbittorrentService.fetchTransferInfo: data dl_speed=${result.data?.dl_info_speed}, up_speed=${result.data?.up_info_speed}`);
       return result.data;
     }
+    this.handleApiFailure(result.statusCode);
     hilog.error(AppConstants.LOG_DOMAIN, AppConstants.LOG_TAG, `fetchTransferInfo failed: ${result.error}`);
     return null;
   }
@@ -67,6 +75,7 @@ export class QbittorrentService {
       }
       return torrents;
     }
+    this.handleApiFailure(result.statusCode);
     hilog.error(AppConstants.LOG_DOMAIN, AppConstants.LOG_TAG, `fetchTorrentList failed: ${result.error}`);
     return [];
   }

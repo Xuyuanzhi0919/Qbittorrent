@@ -20,7 +20,6 @@ export struct ServerConfigPage {
   @State formVisible: boolean = false;
   @State actionVisible: boolean = false;
   @State decorAnimated: boolean = false;
-  private pathStack: NavPathStack = new NavPathStack();
 
   async aboutToAppear(): Promise<void> {
     // 先加载记住密码设置
@@ -99,7 +98,8 @@ export struct ServerConfigPage {
       hilog.info(AppConstants.LOG_DOMAIN, AppConstants.LOG_TAG,
         'ServerConfigPage: connection successful');
       // 连接成功后返回主页
-      this.pathStack.clear();
+      AppStorage.setOrCreate('currentTabIndex', 0);
+      AppService.getNavPathStack().clear();
     } else {
       this.isConnected = this.connectionManager.isConnected;
       this.errorMessage = result.error || '连接失败';
@@ -113,6 +113,7 @@ export struct ServerConfigPage {
     this.isConnected = false;
     this.guestMode = true;
     AppStorage.setOrCreate('currentTabIndex', 0);
+    AppService.getNavPathStack().clear();
   }
 
   build() {
@@ -397,9 +398,5 @@ export struct ServerConfigPage {
     }
     .hideTitleBar(true)
     .hideBackButton(true)
-    .onReady((context: NavDestinationContext) => {
-      this.pathStack = context.pathStack;
-      // 已连接状态下也可以编辑配置，不再自动跳转到 Dashboard
-    })
   }
 }
