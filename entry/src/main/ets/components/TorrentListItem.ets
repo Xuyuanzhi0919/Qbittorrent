@@ -10,84 +10,90 @@ export struct TorrentListItem {
   onToggleSelect?: (hash: string) => void;
 
   build() {
-    Column({ space: 10 }) {
-      Row({ space: 10 }) {
-        this.selectionControl()
+    Stack({ alignContent: Alignment.TopStart }) {
+      this.cardMaskLayer()
 
-        Text(this.torrent.name)
-          .fontSize(15)
-          .fontWeight(FontWeight.Bold)
-          .fontColor($r('app.color.text_primary'))
-          .maxLines(1)
-          .textOverflow({ overflow: TextOverflow.Ellipsis })
-          .layoutWeight(1)
+      Column({ space: 10 }) {
+        Row({ space: 10 }) {
+          this.selectionControl()
 
-        this.statePill()
-      }
-      .width('100%')
-      .alignItems(VerticalAlign.Center)
-
-      Row({ space: 8 }) {
-        Text(`↓ ${FormatUtils.formatSpeed(this.torrent.dlspeed)}`)
-          .fontSize(12)
-          .fontWeight(FontWeight.Bold)
-          .fontColor($r('app.color.accent_color'))
-          .maxLines(1)
-          .textOverflow({ overflow: TextOverflow.Ellipsis })
-          .layoutWeight(1)
-
-        Text(this.getEtaOrSizeText())
-          .fontSize(12)
-          .fontWeight(FontWeight.Medium)
-          .fontColor($r('app.color.text_secondary'))
-          .maxLines(1)
-          .textOverflow({ overflow: TextOverflow.Ellipsis })
-      }
-      .width('100%')
-      .alignItems(VerticalAlign.Center)
-
-      Column({ space: 6 }) {
-        Row() {
-          Text('进度')
-            .fontSize(11)
-            .fontWeight(FontWeight.Medium)
-            .fontColor($r('app.color.text_secondary'))
-          Blank()
-          Text(`${this.getProgressPercent().toFixed(0)}%`)
-            .fontSize(12)
+          Text(this.torrent.name)
+            .fontSize(15)
             .fontWeight(FontWeight.Bold)
-            .fontColor($r('app.color.accent_color'))
+            .fontColor($r('app.color.text_primary'))
+            .maxLines(1)
+            .textOverflow({ overflow: TextOverflow.Ellipsis })
+            .layoutWeight(1)
+
+          this.statePill()
         }
         .width('100%')
         .alignItems(VerticalAlign.Center)
 
-        Stack({ alignContent: Alignment.Start }) {
-          Row()
-            .width('100%')
-            .height(6)
-            .backgroundColor($r('app.color.dashboard_progress_track'))
-            .borderRadius(999)
-          Row()
-            .width(`${this.getProgressPercent()}%`)
-            .height(6)
-            .linearGradient({
-              angle: 90,
-              colors: [['#2563EB', 0], ['#60A5FA', 1]]
-            })
-            .borderRadius(999)
+        Row({ space: 8 }) {
+          Text(`↓ ${FormatUtils.formatSpeed(this.torrent.dlspeed)}`)
+            .fontSize(12)
+            .fontWeight(FontWeight.Bold)
+            .fontColor($r('app.color.accent_color'))
+            .maxLines(1)
+            .textOverflow({ overflow: TextOverflow.Ellipsis })
+            .layoutWeight(1)
+
+          Text(this.getEtaOrSizeText())
+            .fontSize(12)
+            .fontWeight(FontWeight.Medium)
+            .fontColor($r('app.color.text_secondary'))
+            .maxLines(1)
+            .textOverflow({ overflow: TextOverflow.Ellipsis })
+        }
+        .width('100%')
+        .alignItems(VerticalAlign.Center)
+
+        Column({ space: 6 }) {
+          Row() {
+            Text('进度')
+              .fontSize(11)
+              .fontWeight(FontWeight.Medium)
+              .fontColor($r('app.color.text_secondary'))
+            Blank()
+            Text(`${this.getProgressPercent().toFixed(0)}%`)
+              .fontSize(12)
+              .fontWeight(FontWeight.Bold)
+              .fontColor($r('app.color.accent_color'))
+          }
+          .width('100%')
+          .alignItems(VerticalAlign.Center)
+
+          Stack({ alignContent: Alignment.Start }) {
+            Row()
+              .width('100%')
+              .height(6)
+              .backgroundColor($r('app.color.dashboard_progress_track'))
+              .borderRadius(999)
+            Row()
+              .width(`${this.getProgressPercent()}%`)
+              .height(6)
+              .linearGradient({
+                angle: 90,
+                colors: [['#2563EB', 0], ['#60A5FA', 1]]
+              })
+              .borderRadius(999)
+          }
+          .width('100%')
         }
         .width('100%')
       }
       .width('100%')
+      .padding({ left: 14, right: 14, top: 12, bottom: 12 })
     }
     .width('100%')
-    .padding({ left: 14, right: 14, top: 12, bottom: 12 })
     .backgroundColor(this.isSelected ? $r('app.color.download_selected_bg') : $r('app.color.card_background'))
     .border({
       width: 1,
       color: this.isSelected ? $r('app.color.download_selected_border') : $r('app.color.dashboard_border')
     })
     .borderRadius(20)
+    .clip(true)
     .shadow({ radius: 10, color: '#0F172A0D', offsetX: 0, offsetY: 4 })
     .animation({ duration: 220, curve: Curve.EaseOut })
     .onClick(() => {
@@ -101,6 +107,32 @@ export struct TorrentListItem {
         this.onItemClick(this.torrent.hash);
       }
     })
+  }
+
+  @Builder
+  cardMaskLayer() {
+    Stack({ alignContent: Alignment.TopStart }) {
+      Row()
+        .width('100%')
+        .height(54)
+        .linearGradient({
+          angle: 135,
+          colors: [
+            [$r('app.color.card_mask_primary'), 0],
+            [Color.Transparent, 1]
+          ]
+        })
+
+      Row()
+        .width(120)
+        .height(120)
+        .backgroundColor($r('app.color.card_mask_secondary'))
+        .borderRadius(999)
+        .position({ x: -54, y: -62 })
+    }
+    .width('100%')
+    .height('100%')
+    .hitTestBehavior(HitTestMode.Transparent)
   }
 
   @Builder

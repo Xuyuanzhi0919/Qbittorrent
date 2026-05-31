@@ -290,75 +290,80 @@ export struct SettingsPage {
 
   @Builder
   statusCard() {
-    Column({ space: 18 }) {
-      Row({ space: 14 }) {
-        Row() {
-          SymbolGlyph($r('sys.symbol.person_fill'))
-            .fontSize(24)
-            .fontColor([$r('app.color.accent_color')])
-        }
-        .width(54)
-        .height(54)
-        .justifyContent(FlexAlign.Center)
-        .alignItems(VerticalAlign.Center)
-        .backgroundColor($r('app.color.dashboard_surface_info'))
-        .border({ width: 1, color: $r('app.color.download_selected_border') })
-        .borderRadius(18)
+    Stack({ alignContent: Alignment.TopStart }) {
+      this.statusCardMaskLayer()
 
-        Column({ space: 5 }) {
-          Text(this.guestMode ? '示例体验账户' : 'qBittorrent 账户')
-            .fontSize(18)
-            .fontWeight(FontWeight.Bold)
-            .letterSpacing(-0.5)
-            .fontColor($r('app.color.text_primary'))
-            .maxLines(1)
-            .textOverflow({ overflow: TextOverflow.Ellipsis })
-          Text(this.getAccountText())
+      Column({ space: 18 }) {
+        Row({ space: 14 }) {
+          Row() {
+            SymbolGlyph($r('sys.symbol.person_fill'))
+              .fontSize(24)
+              .fontColor([$r('app.color.accent_color')])
+          }
+          .width(54)
+          .height(54)
+          .justifyContent(FlexAlign.Center)
+          .alignItems(VerticalAlign.Center)
+          .backgroundColor($r('app.color.dashboard_surface_info'))
+          .border({ width: 1, color: $r('app.color.download_selected_border') })
+          .borderRadius(18)
+
+          Column({ space: 5 }) {
+            Text(this.guestMode ? '示例体验账户' : 'qBittorrent 账户')
+              .fontSize(18)
+              .fontWeight(FontWeight.Bold)
+              .letterSpacing(-0.5)
+              .fontColor($r('app.color.text_primary'))
+              .maxLines(1)
+              .textOverflow({ overflow: TextOverflow.Ellipsis })
+            Text(this.getAccountText())
+              .fontSize(12)
+              .fontColor($r('app.color.text_secondary'))
+              .maxLines(1)
+              .textOverflow({ overflow: TextOverflow.Ellipsis })
+          }
+          .layoutWeight(1)
+          .alignItems(HorizontalAlign.Start)
+
+          Row({ space: 8 }) {
+            Circle()
+              .width(8)
+              .height(8)
+              .fill(this.getStatusColor())
+            Text(this.getStatusText())
+              .fontSize(12)
+              .fontWeight(FontWeight.Bold)
+              .fontColor(this.getStatusColor())
+          }
+          .padding({ left: 10, right: 10, top: 6, bottom: 6 })
+          .backgroundColor(this.getStatusBgColor())
+          .borderRadius(999)
+        }
+        .width('100%')
+        .alignItems(VerticalAlign.Center)
+
+        Divider()
+          .color($r('app.color.glass_border'))
+
+        Column({ space: 6 }) {
+          Text('当前服务器')
             .fontSize(12)
             .fontColor($r('app.color.text_secondary'))
-            .maxLines(1)
+          Text(this.getServerAddressText())
+            .fontSize(15)
+            .fontWeight(FontWeight.Medium)
+            .fontColor($r('app.color.text_primary'))
+            .maxLines(2)
             .textOverflow({ overflow: TextOverflow.Ellipsis })
+            .width('100%')
         }
-        .layoutWeight(1)
+        .width('100%')
         .alignItems(HorizontalAlign.Start)
-
-        Row({ space: 8 }) {
-          Circle()
-            .width(8)
-            .height(8)
-            .fill(this.getStatusColor())
-          Text(this.getStatusText())
-            .fontSize(12)
-            .fontWeight(FontWeight.Bold)
-            .fontColor(this.getStatusColor())
-        }
-        .padding({ left: 10, right: 10, top: 6, bottom: 6 })
-        .backgroundColor(this.getStatusBgColor())
-        .borderRadius(999)
       }
       .width('100%')
-      .alignItems(VerticalAlign.Center)
-
-      Divider()
-        .color($r('app.color.glass_border'))
-
-      Column({ space: 6 }) {
-        Text('当前服务器')
-          .fontSize(12)
-          .fontColor($r('app.color.text_secondary'))
-        Text(this.getServerAddressText())
-          .fontSize(15)
-          .fontWeight(FontWeight.Medium)
-          .fontColor($r('app.color.text_primary'))
-          .maxLines(2)
-          .textOverflow({ overflow: TextOverflow.Ellipsis })
-          .width('100%')
-      }
-      .width('100%')
-      .alignItems(HorizontalAlign.Start)
+      .padding(18)
     }
     .width('100%')
-    .padding(18)
     .backgroundColor($r('app.color.card_background'))
     .border({ width: 1, color: $r('app.color.dashboard_border') })
     .borderRadius(24)
@@ -368,6 +373,33 @@ export struct SettingsPage {
       offsetX: 0,
       offsetY: 8
     })
+  }
+
+  @Builder
+  statusCardMaskLayer() {
+    Stack({ alignContent: Alignment.TopStart }) {
+      Row()
+        .width('100%')
+        .height(88)
+        .linearGradient({
+          angle: 135,
+          colors: [
+            [$r('app.color.card_mask_secondary'), 0],
+            [$r('app.color.card_mask_primary'), 0.55],
+            [Color.Transparent, 1]
+          ]
+        })
+
+      Row()
+        .width(160)
+        .height(160)
+        .backgroundColor($r('app.color.card_mask_primary'))
+        .borderRadius(999)
+        .position({ x: -72, y: -84 })
+    }
+    .width('100%')
+    .height('100%')
+    .hitTestBehavior(HitTestMode.Transparent)
   }
 
   @Builder
