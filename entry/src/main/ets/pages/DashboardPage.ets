@@ -109,6 +109,10 @@ export struct DashboardPage {
   @State globalLimitDlInput: string = '';
   @State globalLimitUlInput: string = '';
   @State isSettingGlobalLimit: boolean = false;
+  @State fabX: number = -1;
+  @State fabY: number = -1;
+  @State pageWidth: number = 0;
+  @State pageHeight: number = 0;
 
   private isRefreshing: boolean = false;
   private service: QbittorrentService | null = null;
@@ -118,6 +122,11 @@ export struct DashboardPage {
   private recentSpeedSamples: number[] = [];
   private hasQueuedRefresh: boolean = false;
   private queuedRefreshWithLoading: boolean = false;
+  private fabDragStartX: number = 0;
+  private fabDragStartY: number = 0;
+  private suppressNextFabClick: boolean = false;
+  private readonly fabWidth: number = 92;
+  private readonly fabHeight: number = 48;
   private demoRefreshTick: number = 0;
 
   aboutToAppear(): void {
@@ -144,6 +153,60 @@ export struct DashboardPage {
   private onAnySheetChanged(): void {
     const anyOpen: boolean = this.pendingDeleteHash.length > 0 || this.showGlobalLimitSheet;
     AppStorage.setOrCreate('showRootTabBar', !anyOpen);
+  }
+
+  private updatePageSize(width: number, height: number): void {
+    this.pageWidth = width;
+    this.pageHeight = height;
+    if (this.fabX < 0 || this.fabY < 0) {
+      this.resetFabPosition();
+      return;
+    }
+    this.fabX = this.clampFabX(this.fabX);
+    this.fabY = this.clampFabY(this.fabY);
+  }
+
+  private resetFabPosition(): void {
+    this.fabX = this.clampFabX(this.pageWidth - this.fabWidth - 20);
+    this.fabY = this.clampFabY(this.pageHeight - this.rootTabBarReserveHeight - this.fabHeight - 16);
+  }
+
+  private clampFabX(x: number): number {
+    if (this.pageWidth <= 0) {
+      return 20;
+    }
+    const maxX: number = Math.max(20, this.pageWidth - this.fabWidth - 20);
+    if (x < 20) {
+      return 20;
+    }
+    if (x > maxX) {
+      return maxX;
+    }
+    return x;
+  }
+
+  private clampFabY(y: number): number {
+    const minY: number = 88;
+    if (this.pageHeight <= 0) {
+      return minY;
+    }
+    const maxY: number = Math.max(minY, this.pageHeight - this.rootTabBarReserveHeight - this.fabHeight - 16);
+    if (y < minY) {
+      return minY;
+    }
+    if (y > maxY) {
+      return maxY;
+    }
+    return y;
+  }
+
+  private attachFabToEdge(): void {
+    const centerX: number = this.fabX + this.fabWidth / 2;
+    const targetX: number = centerX < this.pageWidth / 2 ? 20 : this.pageWidth - this.fabWidth - 20;
+    animateTo({ duration: 260, curve: Curve.Friction }, () => {
+      this.fabX = this.clampFabX(targetX);
+      this.fabY = this.clampFabY(this.fabY);
+    });
   }
 
   private startAutoRefresh(): void {
@@ -727,6 +790,9 @@ export struct DashboardPage {
     .width('100%')
     .height('100%')
     .backgroundColor($r('app.color.page_background'))
+    .onAreaChange((_old: Area, newV: Area) => {
+      this.updatePageSize(newV.width as number, newV.height as number);
+    })
   }
 
   @Builder
@@ -844,8 +910,7 @@ export struct DashboardPage {
 
   @Builder
   newTaskFloatingButton() {
-    Column() {
-      Blank()
+    Stack() {
       Row({ space: 7 }) {
         SymbolGlyph($r('sys.symbol.plus'))
           .fontSize(17)
@@ -855,6 +920,7 @@ export struct DashboardPage {
           .fontWeight(FontWeight.Bold)
           .fontColor($r('app.color.accent_color'))
       }
+      .width(this.fabWidth)
       .height(48)
       .padding({ left: 16, right: 18 })
       .justifyContent(FlexAlign.Center)
@@ -867,15 +933,38 @@ export struct DashboardPage {
       })
       .borderRadius(999)
       .shadow({ radius: 18, color: '#2563EB24', offsetX: 0, offsetY: 6 })
-      .margin({ right: 20, bottom: this.rootTabBarReserveHeight + 16 })
+      .position({ x: this.fabX < 0 ? this.clampFabX(this.pageWidth - this.fabWidth - 20) : this.fabX,
+        y: this.fabY < 0 ? this.clampFabY(this.pageHeight - this.rootTabBarReserveHeight - this.fabHeight - 16) : this.fabY })
+      .gesture(
+        PanGesture({ fingers: 1 })
+          .onActionStart(() => {
+            this.fabDragStartX = this.fabX < 0 ? this.clampFabX(this.pageWidth - this.fabWidth - 20) : this.fabX;
+            this.fabDragStartY = this.fabY < 0 ? this.clampFabY(this.pageHeight - this.rootTabBarReserveHeight - this.fabHeight - 16) : this.fabY;
+            this.suppressNextFabClick = false;
+          })
+          .onActionUpdate((event: GestureEvent) => {
+            if (Math.abs(event.offsetX) > 4 || Math.abs(event.offsetY) > 4) {
+              this.suppressNextFabClick = true;
+            }
+            this.fabX = this.clampFabX(this.fabDragStartX + event.offsetX);
+            this.fabY = this.clampFabY(this.fabDragStartY + event.offsetY);
+          })
+          .onActionEnd(() => {
+            if (this.suppressNextFabClick) {
+              this.attachFabToEdge();
+            }
+          })
+      )
       .onClick(() => {
+        if (this.suppressNextFabClick) {
+          this.suppressNextFabClick = false;
+          return;
+        }
         AppService.pushPage('AddTorrent');
       })
     }
     .width('100%')
     .height('100%')
-    .alignItems(HorizontalAlign.End)
-    .justifyContent(FlexAlign.End)
     .hitTestBehavior(HitTestMode.Transparent)
   }
 
