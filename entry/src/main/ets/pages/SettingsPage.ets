@@ -19,6 +19,7 @@ export struct SettingsPage {
   @State isReconnecting: boolean = false;
   @State isClearingConfig: boolean = false;
   @State actionMessage: string = '';
+  @State showMoreSettings: boolean = false;
   @State @Watch('onAnySheetChanged') showDisconnectConfirm: boolean = false;
   @State @Watch('onAnySheetChanged') showClearConfigConfirm: boolean = false;
   private actionMessageTimer: number = -1;
@@ -216,17 +217,7 @@ export struct SettingsPage {
 
           this.quickActions()
 
-          this.sectionLabel('连接信息')
-          this.connectionGroup()
-
-          this.sectionLabel('偏好')
-          this.pollingGroup()
-
-          this.sectionLabel('应用')
-          this.aboutGroup()
-
-          this.sectionLabel('账户操作')
-          this.accountActions()
+          this.moreSettingsGroup()
 
           Blank().height(this.rootTabBarReserveHeight + 14)
         }
@@ -423,29 +414,91 @@ export struct SettingsPage {
   }
 
   @Builder
-  sectionLabel(label: string) {
-    Text(label)
-      .fontSize(12)
-      .fontWeight(FontWeight.Medium)
-      .fontColor($r('app.color.text_secondary'))
-      .width('100%')
-      .padding({ left: 4, top: 8, bottom: 0 })
-  }
-
-  @Builder
-  connectionGroup() {
+  moreSettingsGroup() {
     Column() {
-      this.settingsRow('服务器地址', this.getServerAddressText(), $r('sys.symbol.link'), () => {
-        this.openServerConfig();
+      Row({ space: 12 }) {
+        Row() {
+          SymbolGlyph($r('sys.symbol.gearshape'))
+            .fontSize(17)
+            .fontColor([$r('app.color.accent_color')])
+        }
+        .width(34)
+        .height(34)
+        .justifyContent(FlexAlign.Center)
+        .alignItems(VerticalAlign.Center)
+        .backgroundColor($r('app.color.dashboard_surface_info'))
+        .borderRadius(999)
+
+        Column({ space: 3 }) {
+          Text('更多设置')
+            .fontSize(15)
+            .fontWeight(FontWeight.Bold)
+            .fontColor($r('app.color.text_primary'))
+          Text(this.showMoreSettings ? '收起低频设置和账户操作' : '刷新间隔、应用信息和账户操作')
+            .fontSize(12)
+            .fontColor($r('app.color.text_secondary'))
+            .maxLines(1)
+            .textOverflow({ overflow: TextOverflow.Ellipsis })
+        }
+        .layoutWeight(1)
+        .alignItems(HorizontalAlign.Start)
+
+        SymbolGlyph(this.showMoreSettings ? $r('sys.symbol.chevron_up') : $r('sys.symbol.chevron_down'))
+          .fontSize(16)
+          .fontColor([$r('app.color.tab_inactive_fg')])
+      }
+      .width('100%')
+      .padding({ left: 16, right: 16, top: 15, bottom: 15 })
+      .alignItems(VerticalAlign.Center)
+      .onClick(() => {
+        this.showMoreSettings = !this.showMoreSettings;
       })
 
-      Divider()
-        .color($r('app.color.dashboard_border_soft'))
-        .margin({ left: 52 })
+      if (this.showMoreSettings) {
+        Divider()
+          .color($r('app.color.dashboard_border_soft'))
+          .margin({ left: 16, right: 16 })
 
-      this.settingsRow('登录账户', this.getAccountText(), $r('sys.symbol.person'), () => {
-        this.openServerConfig();
-      })
+        this.settingsRow('服务器地址', this.getServerAddressText(), $r('sys.symbol.link'), () => {
+          this.openServerConfig();
+        })
+
+        Divider()
+          .color($r('app.color.dashboard_border_soft'))
+          .margin({ left: 52 })
+
+        this.settingsRow('登录账户', this.getAccountText(), $r('sys.symbol.person'), () => {
+          this.openServerConfig();
+        })
+
+        Divider()
+          .color($r('app.color.dashboard_border_soft'))
+          .margin({ left: 16, right: 16 })
+
+        this.pollingInlineSection()
+
+        Divider()
+          .color($r('app.color.dashboard_border_soft'))
+          .margin({ left: 16, right: 16 })
+
+        this.infoRow('应用版本', 'v1.0.0')
+
+        Divider()
+          .color($r('app.color.dashboard_border_soft'))
+          .margin({ left: 16 })
+
+        this.infoRow('WebUI API', 'qBittorrent 5.x')
+
+        Divider()
+          .color($r('app.color.dashboard_border_soft'))
+          .margin({ left: 16, right: 16 })
+
+        Column() {
+          this.accountActions()
+        }
+        .width('100%')
+        .padding({ left: 16, right: 16, top: 14, bottom: 16 })
+      }
     }
     .width('100%')
     .backgroundColor($r('app.color.glass_bg_card'))
@@ -495,16 +548,16 @@ export struct SettingsPage {
   }
 
   @Builder
-  pollingGroup() {
-    Column({ space: 14 }) {
+  pollingInlineSection() {
+    Column({ space: 12 }) {
       Row() {
         Row() {
           SymbolGlyph($r('sys.symbol.arrow_2_circlepath'))
             .fontSize(16)
             .fontColor([$r('app.color.accent_color')])
         }
-        .width(30)
-        .height(30)
+        .width(28)
+        .height(28)
         .justifyContent(FlexAlign.Center)
         .alignItems(VerticalAlign.Center)
         .backgroundColor($r('app.color.dashboard_surface_info'))
@@ -518,6 +571,8 @@ export struct SettingsPage {
           Text('影响仪表盘和下载列表更新频率')
             .fontSize(12)
             .fontColor($r('app.color.text_secondary'))
+            .maxLines(1)
+            .textOverflow({ overflow: TextOverflow.Ellipsis })
         }
         .layoutWeight(1)
         .alignItems(HorizontalAlign.Start)
@@ -539,7 +594,7 @@ export struct SettingsPage {
               .fontColor(this.pollingInterval === ms ? $r('app.color.tab_active_fg') : $r('app.color.text_secondary'))
           }
           .layoutWeight(1)
-          .height(38)
+          .height(36)
           .justifyContent(FlexAlign.Center)
           .backgroundColor(this.pollingInterval === ms ? $r('app.color.tab_active_bg') : $r('app.color.dashboard_surface_soft'))
           .border({
@@ -556,29 +611,6 @@ export struct SettingsPage {
     }
     .width('100%')
     .padding({ left: 16, right: 16, top: 14, bottom: 14 })
-    .backgroundColor($r('app.color.glass_bg_card'))
-    .backdropBlur(22)
-    .border({ width: 1, color: $r('app.color.glass_border') })
-    .borderRadius(24)
-  }
-
-  @Builder
-  aboutGroup() {
-    Column() {
-      this.infoRow('应用版本', 'v1.0.0')
-
-      Divider()
-        .color($r('app.color.dashboard_border_soft'))
-        .margin({ left: 16 })
-
-      this.infoRow('WebUI API', 'qBittorrent 5.x')
-    }
-    .width('100%')
-    .backgroundColor($r('app.color.glass_bg_card'))
-    .backdropBlur(22)
-    .border({ width: 1, color: $r('app.color.glass_border') })
-    .borderRadius(24)
-    .clip(true)
   }
 
   @Builder
