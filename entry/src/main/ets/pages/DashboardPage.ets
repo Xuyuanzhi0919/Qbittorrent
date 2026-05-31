@@ -824,6 +824,26 @@ export struct DashboardPage {
 
       Blank()
 
+      Row({ space: 6 }) {
+        SymbolGlyph($r('sys.symbol.plus'))
+          .fontSize(14)
+          .fontColor([$r('app.color.dashboard_primary_action_fg')])
+        Text('新建')
+          .fontSize(12)
+          .fontWeight(FontWeight.Bold)
+          .fontColor($r('app.color.dashboard_primary_action_fg'))
+      }
+      .height(36)
+      .padding({ left: 12, right: 12 })
+      .justifyContent(FlexAlign.Center)
+      .alignItems(VerticalAlign.Center)
+      .backgroundColor($r('app.color.dashboard_primary_action_bg'))
+      .borderRadius(999)
+      .margin({ right: 8 })
+      .onClick(() => {
+        AppService.pushPage('AddTorrent');
+      })
+
       Row({ space: 8 }) {
         Circle()
           .width(8)
