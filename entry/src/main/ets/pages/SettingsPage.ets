@@ -220,9 +220,6 @@ export struct SettingsPage {
       .width('100%')
       .height('100%')
       .backgroundColor(Color.Transparent)
-      .backgroundImage($r('app.media.background'), ImageRepeat.NoRepeat)
-      .backgroundImageSize(ImageSize.Cover)
-      .backgroundImagePosition(Alignment.Top)
       .blur(this.showDisconnectConfirm || this.showClearConfigConfirm ? 16 : 0)
       .animation({ duration: 220, curve: Curve.EaseOut })
 
@@ -236,14 +233,52 @@ export struct SettingsPage {
     .width('100%')
     .height('100%')
     .backgroundColor($r('app.color.page_background'))
-    .backgroundImage($r('app.media.background'), ImageRepeat.NoRepeat)
-    .backgroundImageSize(ImageSize.Cover)
-    .backgroundImagePosition(Alignment.Top)
   }
 
   @Builder
   pageBackgroundLayer() {
     Stack() {
+      Row()
+        .width('100%')
+        .height('100%')
+        .linearGradient({
+          angle: 180,
+          colors: [
+            [$r('app.color.page_gradient_top'), 0],
+            [$r('app.color.page_gradient_mid'), 0.38],
+            [$r('app.color.page_background'), 1]
+          ]
+        })
+
+      Row()
+        .width('118%')
+        .height(180)
+        .linearGradient({
+          angle: 90,
+          colors: [[Color.Transparent, 0], [$r('app.color.dashboard_surface_info'), 0.36], [$r('app.color.dashboard_surface_success'), 0.76], [Color.Transparent, 1]]
+        })
+        .borderRadius(56)
+        .position({ x: -34, y: 118 })
+
+      Row()
+        .width('112%')
+        .height(120)
+        .linearGradient({
+          angle: 90,
+          colors: [[Color.Transparent, 0], [$r('app.color.dashboard_surface_success'), 0.48], [$r('app.color.dashboard_surface_warning'), 0.88], [Color.Transparent, 1]]
+        })
+        .borderRadius(48)
+        .position({ x: -26, y: 276 })
+
+      Row()
+        .width('100%')
+        .height(160)
+        .linearGradient({
+          angle: 180,
+          colors: [[Color.Transparent, 0], [$r('app.color.page_background'), 1]]
+        })
+        .position({ x: 0, y: 560 })
+
       Column() {
         Row()
           .width('100%')
