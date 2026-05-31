@@ -6,6 +6,8 @@ import { AppConstants } from '../common/constants/AppConstants';
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { AppService } from './Index';
 import { DemoDataProvider } from '../mock/DemoDataProvider';
+import { motion } from '@kit.MultimodalAwarenessKit';
+import { BusinessError } from '@kit.BasicServicesKit';
 
 @Component
 struct WaveCanvas {
@@ -128,10 +130,14 @@ export struct DashboardPage {
   private readonly fabWidth: number = 92;
   private readonly fabHeight: number = 48;
   private demoRefreshTick: number = 0;
+  private holdingHandChangedCallback: Callback<motion.HoldingHandStatus> = (status: motion.HoldingHandStatus): void => {
+    this.handleHoldingHandChanged(status);
+  };
 
   aboutToAppear(): void {
     this.service = AppService.getService();
     this.sessionStartTime = Date.now();
+    this.startHoldingHandMonitoring();
     if (this.guestMode) {
       this.loadGuestDemoData();
       this.startAutoRefresh();
@@ -142,6 +148,7 @@ export struct DashboardPage {
   }
 
   aboutToDisappear(): void {
+    this.stopHoldingHandMonitoring();
     this.stopAutoRefresh();
     if (this.actionMessageTimer !== -1) {
       clearTimeout(this.actionMessageTimer);
@@ -153,6 +160,52 @@ export struct DashboardPage {
   private onAnySheetChanged(): void {
     const anyOpen: boolean = this.pendingDeleteHash.length > 0 || this.showGlobalLimitSheet;
     AppStorage.setOrCreate('showRootTabBar', !anyOpen);
+  }
+
+  private startHoldingHandMonitoring(): void {
+    try {
+      motion.on('holdingHandChanged', this.holdingHandChangedCallback);
+      hilog.info(AppConstants.LOG_DOMAIN, AppConstants.LOG_TAG, 'Holding hand monitoring started');
+    } catch (err) {
+      const error: BusinessError = err as BusinessError;
+      hilog.warn(AppConstants.LOG_DOMAIN, AppConstants.LOG_TAG,
+        `Holding hand monitoring failed: ${error.code}, ${error.message}`);
+    }
+  }
+
+  private stopHoldingHandMonitoring(): void {
+    try {
+      motion.off('holdingHandChanged', this.holdingHandChangedCallback);
+      hilog.info(AppConstants.LOG_DOMAIN, AppConstants.LOG_TAG, 'Holding hand monitoring stopped');
+    } catch (err) {
+      const error: BusinessError = err as BusinessError;
+      hilog.warn(AppConstants.LOG_DOMAIN, AppConstants.LOG_TAG,
+        `Stop holding hand monitoring failed: ${error.code}, ${error.message}`);
+    }
+  }
+
+  private handleHoldingHandChanged(status: motion.HoldingHandStatus): void {
+    if (this.pageWidth <= 0) {
+      return;
+    }
+    if (status === motion.HoldingHandStatus.LEFT_HAND_HELD) {
+      this.moveFabToEdge(true);
+      return;
+    }
+    if (status === motion.HoldingHandStatus.RIGHT_HAND_HELD) {
+      this.moveFabToEdge(false);
+    }
+  }
+
+  private moveFabToEdge(left: boolean): void {
+    const targetX: number = left ? 20 : this.pageWidth - this.fabWidth - 20;
+    const targetY: number = this.fabY < 0 ?
+      this.clampFabY(this.pageHeight - this.rootTabBarReserveHeight - this.fabHeight - 16) :
+      this.clampFabY(this.fabY);
+    animateTo({ duration: 260, curve: Curve.Friction }, () => {
+      this.fabX = this.clampFabX(targetX);
+      this.fabY = targetY;
+    });
   }
 
   private updatePageSize(width: number, height: number): void {
