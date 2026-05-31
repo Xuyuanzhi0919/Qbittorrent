@@ -288,22 +288,6 @@ export struct SettingsPage {
         .fontColor($r('app.color.text_primary'))
 
       Blank()
-
-      Row({ space: 8 }) {
-        Circle()
-          .width(8)
-          .height(8)
-          .fill(this.getStatusColor())
-        Text(this.getStatusText())
-          .fontSize(12)
-          .fontWeight(FontWeight.Medium)
-          .fontColor($r('app.color.text_primary'))
-      }
-      .padding({ left: 12, right: 12, top: 8, bottom: 8 })
-      .backgroundColor($r('app.color.glass_bg_card'))
-      .backdropBlur(24)
-      .border({ width: 1, color: $r('app.color.glass_border') })
-      .borderRadius(999)
     }
     .width('100%')
     .height(46)
