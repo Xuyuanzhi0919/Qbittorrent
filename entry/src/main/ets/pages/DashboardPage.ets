@@ -787,20 +787,7 @@ export struct DashboardPage {
 
   build() {
     Stack() {
-      // Gradient background layer — gives glassmorphism cards their colour to blur through
-      Column() {
-        Row()
-          .width('100%')
-          .height(440)
-          .linearGradient({
-            angle: 180,
-            colors: [[$r('app.color.page_gradient_top'), 0], [$r('app.color.page_gradient_mid'), 0.5], [$r('app.color.page_background'), 1]]
-          })
-        Blank()
-      }
-      .width('100%')
-      .height('100%')
-      .backgroundColor($r('app.color.page_background'))
+      this.pageBackgroundLayer()
 
       Refresh({ refreshing: $$this.isLoading }) {
         Scroll() {
@@ -846,6 +833,33 @@ export struct DashboardPage {
     .onAreaChange((_old: Area, newV: Area) => {
       this.updatePageSize(newV.width as number, newV.height as number);
     })
+  }
+
+  @Builder
+  pageBackgroundLayer() {
+    Stack() {
+      Image($r('app.media.background'))
+        .width('100%')
+        .height('100%')
+        .objectFit(ImageFit.Cover)
+
+      Column() {
+        Row()
+          .width('100%')
+          .height(520)
+          .linearGradient({
+            angle: 180,
+            colors: [[Color.Transparent, 0], [$r('app.color.page_background'), 1]]
+          })
+        Blank()
+      }
+      .width('100%')
+      .height('100%')
+    }
+    .width('100%')
+    .height('100%')
+    .backgroundColor($r('app.color.page_background'))
+    .hitTestBehavior(HitTestMode.Transparent)
   }
 
   @Builder
