@@ -17,8 +17,10 @@ export struct SettingsPage {
   @State pollingInterval: number = AppConstants.DEFAULT_POLLING_INTERVAL;
   @State isDisconnecting: boolean = false;
   @State isReconnecting: boolean = false;
+  @State isClearingConfig: boolean = false;
   @State actionMessage: string = '';
   @State @Watch('onAnySheetChanged') showDisconnectConfirm: boolean = false;
+  @State @Watch('onAnySheetChanged') showClearConfigConfirm: boolean = false;
   private actionMessageTimer: number = -1;
   private readonly pollingOptions: number[] = [1000, 2000, 5000, 10000];
 
@@ -49,7 +51,8 @@ export struct SettingsPage {
   }
 
   private onAnySheetChanged(): void {
-    AppStorage.setOrCreate('showRootTabBar', !this.showDisconnectConfirm);
+    const anyOpen: boolean = this.showDisconnectConfirm || this.showClearConfigConfirm;
+    AppStorage.setOrCreate('showRootTabBar', !anyOpen);
   }
 
   private async handleDisconnect(): Promise<void> {
@@ -95,6 +98,25 @@ export struct SettingsPage {
       this.showActionMessage('重新连接失败，请检查密码或网络');
     } finally {
       this.isReconnecting = false;
+    }
+  }
+
+  private async handleClearConfig(): Promise<void> {
+    if (this.isClearingConfig || this.guestMode) {
+      return;
+    }
+    this.isClearingConfig = true;
+    try {
+      this.service.stopPolling();
+      await this.connectionManager.disconnectAndClear();
+      this.serverUrl = '';
+      this.serverUsername = '';
+      this.isConnected = false;
+      this.showClearConfigConfirm = false;
+      AppStorage.setOrCreate('currentTabIndex', 0);
+      AppService.getNavPathStack().clear();
+    } finally {
+      this.isClearingConfig = false;
     }
   }
 
@@ -215,11 +237,14 @@ export struct SettingsPage {
       .width('100%')
       .height('100%')
       .backgroundColor(Color.Transparent)
-      .blur(this.showDisconnectConfirm ? 16 : 0)
+      .blur(this.showDisconnectConfirm || this.showClearConfigConfirm ? 16 : 0)
       .animation({ duration: 220, curve: Curve.EaseOut })
 
       if (this.showDisconnectConfirm) {
         this.disconnectConfirmDialog()
+      }
+      if (this.showClearConfigConfirm) {
+        this.clearConfigConfirmDialog()
       }
     }
     .width('100%')
@@ -454,6 +479,12 @@ export struct SettingsPage {
           .margin({ left: 52 })
 
         this.reconnectRow()
+
+        Divider()
+          .color($r('app.color.dashboard_border_soft'))
+          .margin({ left: 52 })
+
+        this.clearConfigRow()
       }
     }
     .width('100%')
@@ -554,6 +585,55 @@ export struct SettingsPage {
     .enabled(!this.isReconnecting)
     .onClick(() => {
       this.handleReconnect();
+    })
+  }
+
+  @Builder
+  clearConfigRow() {
+    Row({ space: 12 }) {
+      Row() {
+        if (this.isClearingConfig) {
+          LoadingProgress()
+            .width(16)
+            .height(16)
+            .color($r('app.color.error_color'))
+        } else {
+          SymbolGlyph($r('sys.symbol.trash'))
+            .fontSize(16)
+            .fontColor([$r('app.color.error_color')])
+        }
+      }
+      .width(28)
+      .height(28)
+      .justifyContent(FlexAlign.Center)
+      .alignItems(VerticalAlign.Center)
+      .backgroundColor($r('app.color.dashboard_surface_danger'))
+      .borderRadius(999)
+
+      Column({ space: 3 }) {
+        Text(this.isClearingConfig ? '正在清除配置' : '清除服务器配置')
+          .fontSize(14)
+          .fontWeight(FontWeight.Medium)
+          .fontColor($r('app.color.text_primary'))
+        Text('清除已保存的地址、账户和密码')
+          .fontSize(12)
+          .fontColor($r('app.color.text_secondary'))
+          .maxLines(1)
+          .textOverflow({ overflow: TextOverflow.Ellipsis })
+      }
+      .layoutWeight(1)
+      .alignItems(HorizontalAlign.Start)
+
+      SymbolGlyph($r('sys.symbol.chevron_right'))
+        .fontSize(16)
+        .fontColor([$r('app.color.tab_inactive_fg')])
+    }
+    .width('100%')
+    .padding({ left: 14, right: 14, top: 14, bottom: 14 })
+    .alignItems(VerticalAlign.Center)
+    .enabled(!this.isClearingConfig)
+    .onClick(() => {
+      this.showClearConfigConfirm = true;
     })
   }
 
@@ -739,6 +819,69 @@ export struct SettingsPage {
             .enabled(!this.isDisconnecting)
             .onClick(() => {
               this.handleDisconnect();
+            })
+        }
+        .width('100%')
+      }
+      .width(290)
+      .padding(20)
+      .backgroundColor($r('app.color.card_background'))
+      .borderRadius(24)
+      .alignItems(HorizontalAlign.Start)
+    }
+    .width('100%')
+    .height('100%')
+  }
+
+  @Builder
+  clearConfigConfirmDialog() {
+    Stack({ alignContent: Alignment.Center }) {
+      Row()
+        .width('100%')
+        .height('100%')
+        .backgroundColor($r('app.color.dashboard_overlay'))
+        .onClick(() => {
+          if (!this.isClearingConfig) {
+            this.showClearConfigConfirm = false;
+          }
+        })
+
+      Column({ space: 16 }) {
+        Column({ space: 6 }) {
+          Text('清除服务器配置')
+            .fontSize(18)
+            .fontWeight(FontWeight.Bold)
+            .fontColor($r('app.color.text_primary'))
+          Text('将清除已保存的服务器地址、账户和密码，并返回连接配置页。')
+            .fontSize(13)
+            .fontColor($r('app.color.text_secondary'))
+        }
+        .width('100%')
+        .alignItems(HorizontalAlign.Start)
+
+        Row({ space: 10 }) {
+          Button('取消')
+            .layoutWeight(1)
+            .height(44)
+            .fontSize(14)
+            .fontColor($r('app.color.text_primary'))
+            .backgroundColor($r('app.color.dashboard_surface_muted'))
+            .borderRadius(999)
+            .enabled(!this.isClearingConfig)
+            .onClick(() => {
+              this.showClearConfigConfirm = false;
+            })
+
+          Button(this.isClearingConfig ? '清除中…' : '确认清除')
+            .layoutWeight(1)
+            .height(44)
+            .fontSize(14)
+            .fontColor($r('app.color.tab_active_fg'))
+            .backgroundColor($r('app.color.error_color'))
+            .borderRadius(999)
+            .enabled(!this.isClearingConfig)
+            .onClick(() => {
+              this.handleClearConfig();
             })
         }
         .width('100%')
