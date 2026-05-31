@@ -137,6 +137,32 @@ export class PreferencesStore {
     }
   }
 
+  async saveLastDownloadPath(path: string): Promise<void> {
+    await this.waitForInit();
+    if (this.prefs === null) {
+      return;
+    }
+    try {
+      await this.prefs.put('last_download_path', path);
+      await this.prefs.flush();
+    } catch (err) {
+      hilog.error(AppConstants.LOG_DOMAIN, AppConstants.LOG_TAG, `Failed to save last download path: ${JSON.stringify(err)}`);
+    }
+  }
+
+  async loadLastDownloadPath(): Promise<string> {
+    await this.waitForInit();
+    if (this.prefs === null) {
+      return '';
+    }
+    try {
+      return await this.prefs.get('last_download_path', '') as string;
+    } catch (err) {
+      hilog.error(AppConstants.LOG_DOMAIN, AppConstants.LOG_TAG, `Failed to load last download path: ${JSON.stringify(err)}`);
+      return '';
+    }
+  }
+
   async saveRememberPassword(remember: boolean): Promise<void> {
     await this.waitForInit();
     if (this.prefs === null) {
