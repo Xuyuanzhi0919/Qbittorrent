@@ -10,17 +10,17 @@ export struct TorrentListItem {
   onToggleSelect?: (hash: string) => void;
 
   build() {
-    Column({ space: 12 }) {
+    Column({ space: 9 }) {
       Row({ space: 10 }) {
         this.selectionControl()
 
-        Column({ space: 5 }) {
+        Column({ space: 4 }) {
           Row({ space: 8 }) {
             Text(this.torrent.name)
-              .fontSize(16)
+              .fontSize(15)
               .fontWeight(FontWeight.Bold)
               .fontColor($r('app.color.text_primary'))
-              .maxLines(2)
+              .maxLines(1)
               .textOverflow({ overflow: TextOverflow.Ellipsis })
               .layoutWeight(1)
 
@@ -31,7 +31,7 @@ export struct TorrentListItem {
 
           Row({ space: 8 }) {
             Text(this.getPrimaryMetaText())
-              .fontSize(12)
+              .fontSize(11)
               .fontWeight(FontWeight.Medium)
               .fontColor($r('app.color.text_secondary'))
               .maxLines(1)
@@ -39,7 +39,7 @@ export struct TorrentListItem {
               .layoutWeight(1)
 
             Text(this.getEtaOrSizeText())
-              .fontSize(12)
+              .fontSize(11)
               .fontWeight(FontWeight.Medium)
               .fontColor($r('app.color.tab_inactive_fg'))
           }
@@ -52,15 +52,15 @@ export struct TorrentListItem {
       .width('100%')
       .alignItems(VerticalAlign.Top)
 
-      Column({ space: 7 }) {
+      Column({ space: 6 }) {
         Row() {
           Text('进度')
-            .fontSize(12)
+            .fontSize(11)
             .fontWeight(FontWeight.Medium)
             .fontColor($r('app.color.text_secondary'))
           Blank()
           Text(`${this.getProgressPercent().toFixed(0)}%`)
-            .fontSize(13)
+            .fontSize(12)
             .fontWeight(FontWeight.Bold)
             .fontColor($r('app.color.accent_color'))
         }
@@ -70,12 +70,12 @@ export struct TorrentListItem {
         Stack({ alignContent: Alignment.Start }) {
           Row()
             .width('100%')
-            .height(7)
+            .height(6)
             .backgroundColor($r('app.color.dashboard_progress_track'))
             .borderRadius(999)
           Row()
             .width(`${this.getProgressPercent()}%`)
-            .height(7)
+            .height(6)
             .linearGradient({
               angle: 90,
               colors: [['#2563EB', 0], ['#60A5FA', 1]]
@@ -94,7 +94,7 @@ export struct TorrentListItem {
       .width('100%')
     }
     .width('100%')
-    .padding({ left: 14, right: 14, top: 14, bottom: 14 })
+    .padding({ left: 14, right: 14, top: 12, bottom: 12 })
     .backgroundColor(this.isSelected ? $r('app.color.download_selected_bg') : $r('app.color.glass_bg_elevated'))
     .border({
       width: 1,
@@ -151,10 +151,10 @@ export struct TorrentListItem {
   @Builder
   statePill() {
     Text(this.torrent.getStateLabel())
-      .fontSize(11)
+      .fontSize(10)
       .fontWeight(FontWeight.Medium)
       .fontColor(this.getStateTextColor())
-      .padding({ left: 9, right: 9, top: 5, bottom: 5 })
+      .padding({ left: 8, right: 8, top: 4, bottom: 4 })
       .backgroundColor(this.getStateBackgroundColor())
       .borderRadius(999)
   }
@@ -167,14 +167,14 @@ export struct TorrentListItem {
         .fontWeight(FontWeight.Medium)
         .fontColor($r('app.color.tab_inactive_fg'))
       Text(value)
-        .fontSize(12)
+        .fontSize(11)
         .fontWeight(FontWeight.Bold)
         .fontColor(valueColor)
         .maxLines(1)
         .textOverflow({ overflow: TextOverflow.Ellipsis })
     }
     .layoutWeight(1)
-    .padding({ left: 10, right: 10, top: 8, bottom: 8 })
+    .padding({ left: 10, right: 10, top: 7, bottom: 7 })
     .alignItems(HorizontalAlign.Start)
     .backgroundColor($r('app.color.dashboard_surface_soft'))
     .border({
