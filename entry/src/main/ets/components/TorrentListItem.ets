@@ -88,6 +88,7 @@ export struct TorrentListItem {
       color: this.isSelected ? $r('app.color.download_selected_border') : $r('app.color.dashboard_border')
     })
     .borderRadius(20)
+    .shadow({ radius: 10, color: '#0F172A0D', offsetX: 0, offsetY: 4 })
     .animation({ duration: 220, curve: Curve.EaseOut })
     .onClick(() => {
       if (this.selectionMode) {
@@ -143,6 +144,7 @@ export struct TorrentListItem {
       .fontColor(this.getStateTextColor())
       .padding({ left: 8, right: 8, top: 4, bottom: 4 })
       .backgroundColor(this.getStateBackgroundColor())
+      .border({ width: 1, color: this.getStateBorderColor() })
       .borderRadius(999)
   }
 
@@ -194,5 +196,21 @@ export struct TorrentListItem {
       return $r('app.color.error_color');
     }
     return $r('app.color.text_secondary');
+  }
+
+  private getStateBorderColor(): ResourceStr {
+    if (this.torrent.isDownloading()) {
+      return $r('app.color.download_selected_border');
+    }
+    if (this.torrent.isCompleted()) {
+      return $r('app.color.success_color');
+    }
+    if (this.torrent.isPaused()) {
+      return $r('app.color.warning_color');
+    }
+    if (this.torrent.state === 'error' || this.torrent.state === 'missingFiles') {
+      return $r('app.color.error_color');
+    }
+    return $r('app.color.dashboard_border');
   }
 }

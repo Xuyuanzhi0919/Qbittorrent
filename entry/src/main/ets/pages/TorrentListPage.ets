@@ -1349,17 +1349,16 @@ export struct TorrentListPage {
       }
     }
     .width('100%')
-    .padding({ left: 12, right: 12, top: 12, bottom: 12 })
-    .backgroundColor($r('app.color.glass_bg_card'))
-    .backdropBlur(24)
+    .padding(14)
+    .backgroundColor($r('app.color.card_background'))
     .border({
       width: 1,
-      color: $r('app.color.glass_border')
+      color: $r('app.color.dashboard_border')
     })
     .borderRadius(24)
     .shadow({
-      radius: 20,
-      color: '#0F172A14',
+      radius: 18,
+      color: '#0F172A12',
       offsetX: 0,
       offsetY: 8
     })

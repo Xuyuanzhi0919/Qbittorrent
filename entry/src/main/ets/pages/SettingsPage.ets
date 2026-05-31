@@ -358,13 +358,13 @@ export struct SettingsPage {
       .alignItems(HorizontalAlign.Start)
     }
     .width('100%')
-    .padding(20)
+    .padding(18)
     .backgroundColor($r('app.color.card_background'))
     .border({ width: 1, color: $r('app.color.dashboard_border') })
     .borderRadius(24)
     .shadow({
-      radius: 20,
-      color: '#0F172A14',
+      radius: 18,
+      color: '#0F172A12',
       offsetX: 0,
       offsetY: 8
     })
@@ -407,9 +407,8 @@ export struct SettingsPage {
     .height(46)
     .justifyContent(FlexAlign.Center)
     .alignItems(VerticalAlign.Center)
-    .backgroundColor($r('app.color.glass_bg_card'))
-    .backdropBlur(20)
-    .border({ width: 1, color: $r('app.color.glass_border') })
+    .backgroundColor($r('app.color.card_background'))
+    .border({ width: 1, color: $r('app.color.dashboard_border') })
     .borderRadius(999)
     .enabled(!(this.isReconnecting && label === '连接中'))
     .onClick(action)
@@ -507,6 +506,12 @@ export struct SettingsPage {
     .border({ width: 1, color: $r('app.color.dashboard_border') })
     .borderRadius(24)
     .clip(true)
+    .shadow({
+      radius: 18,
+      color: '#0F172A12',
+      offsetX: 0,
+      offsetY: 8
+    })
   }
 
   @Builder

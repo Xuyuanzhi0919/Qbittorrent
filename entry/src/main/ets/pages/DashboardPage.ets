@@ -899,7 +899,7 @@ export struct DashboardPage {
         Row({ space: 10 }) {
           Button('取消')
             .layoutWeight(1)
-            .height(42)
+            .height(44)
             .fontSize(14)
             .fontColor($r('app.color.text_primary'))
             .backgroundColor($r('app.color.dashboard_surface_muted'))
@@ -909,7 +909,7 @@ export struct DashboardPage {
             })
           Button('删除')
             .layoutWeight(1)
-            .height(42)
+            .height(44)
             .fontSize(14)
             .fontColor($r('app.color.tab_active_fg'))
             .backgroundColor($r('app.color.error_color'))
@@ -1122,8 +1122,8 @@ export struct DashboardPage {
     .borderRadius(24)
     .clip(true)
     .shadow({
-      radius: 20,
-      color: '#0F172A14',
+      radius: 18,
+      color: '#0F172A12',
       offsetX: 0,
       offsetY: 8
     })
