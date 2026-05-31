@@ -65,12 +65,12 @@ export struct TorrentListItem {
         Stack({ alignContent: Alignment.Start }) {
           Row()
             .width('100%')
-            .height(4)
+            .height(5)
             .backgroundColor($r('app.color.dashboard_progress_track'))
             .borderRadius(999)
           Row()
             .width(`${this.getProgressPercent()}%`)
-            .height(4)
+            .height(5)
             .linearGradient({
               angle: 90,
               colors: [['#2563EB', 0], ['#60A5FA', 1]]
@@ -97,7 +97,7 @@ export struct TorrentListItem {
 
           Blank()
 
-          Text(FormatUtils.formatFileSize(this.torrent.size))
+          Text(this.getEtaOrSizeText())
             .fontSize(11)
             .fontWeight(FontWeight.Normal)
             .fontColor($r('app.color.tab_inactive_fg'))
@@ -109,12 +109,13 @@ export struct TorrentListItem {
     }
     .width('100%')
     .padding({ left: 14, right: 14, top: 12, bottom: 12 })
-    .backgroundColor(this.isSelected ? $r('app.color.download_selected_bg') : $r('app.color.card_background'))
+    .backgroundColor(this.isSelected ? $r('app.color.download_selected_bg') : $r('app.color.glass_bg_elevated'))
     .border({
       width: 1,
-      color: this.isSelected ? $r('app.color.download_selected_border') : $r('app.color.dashboard_border')
+      color: this.isSelected ? $r('app.color.download_selected_border') : $r('app.color.glass_border')
     })
-    .borderRadius(16)
+    .borderRadius(20)
+    .animation({ duration: 220, curve: Curve.EaseOut })
     .onClick(() => {
       if (this.selectionMode) {
         if (this.onToggleSelect) {
@@ -126,6 +127,13 @@ export struct TorrentListItem {
         this.onItemClick(this.torrent.hash);
       }
     })
+  }
+
+  private getEtaOrSizeText(): string {
+    if (this.torrent.isDownloading() && this.torrent.eta > 0 && this.torrent.eta < 8640000) {
+      return FormatUtils.formatEta(this.torrent.eta);
+    }
+    return FormatUtils.formatFileSize(this.torrent.size);
   }
 
   private getProgressPercent(): number {

@@ -512,13 +512,6 @@ export struct TorrentListPage {
     return '确认暂停';
   }
 
-  private getBulkActionButtonText(): string {
-    if (this.shouldResumeSelection()) {
-      return '批量继续';
-    }
-    return '批量暂停';
-  }
-
   private getModeBadgeText(): string {
     if (this.showBulkActionSheet) {
       return '批量结果';
@@ -630,7 +623,7 @@ export struct TorrentListPage {
   }
 
   private getTorrentRenderKey(torrent: TorrentInfo): string {
-    return `${torrent.hash}_${torrent.state}_${Math.floor(torrent.progress * 1000)}_${torrent.dlspeed}_${torrent.upspeed}_${torrent.num_seeds}`;
+    return torrent.hash;
   }
 
   private openTorrent(hash: string): void {
@@ -649,6 +642,20 @@ export struct TorrentListPage {
 
   build() {
     Stack() {
+      Column() {
+        Row()
+          .width('100%')
+          .height(440)
+          .linearGradient({
+            angle: 180,
+            colors: [[$r('app.color.page_gradient_top'), 0], [$r('app.color.page_gradient_mid'), 0.5], [$r('app.color.page_background'), 1]]
+          })
+        Blank()
+      }
+      .width('100%')
+      .height('100%')
+      .backgroundColor($r('app.color.page_background'))
+
       Column({ space: 0 }) {
         Column() {
           Column({ space: 12 }) {
@@ -699,11 +706,11 @@ export struct TorrentListPage {
           })
           .width('100%')
           .layoutWeight(1)
-          .backgroundColor($r('app.color.page_background'))
+          .backgroundColor(Color.Transparent)
         }
         .width('100%')
         .layoutWeight(1)
-        .backgroundColor($r('app.color.page_background'))
+        .backgroundColor(Color.Transparent)
         .onRefreshing(() => {
           this.refreshData(true);
         })
@@ -712,6 +719,42 @@ export struct TorrentListPage {
       .height('100%')
       .blur(this.showBulkActionSheet || this.showCategoryMgmtSheet || this.showSetCategorySheet ? 16 : 0)
       .animation({ duration: 220, curve: Curve.EaseOut })
+
+      Column() {
+        Blank()
+        if (!this.headerVisible && this.torrents.length > 0 &&
+            !this.showBulkActionSheet && !this.showCategoryMgmtSheet && !this.showSetCategorySheet) {
+          Stack({ alignContent: Alignment.Center }) {
+            SymbolGlyph($r('sys.symbol.chevron_up'))
+              .fontSize(18)
+              .fontColor([$r('app.color.tab_active_fg')])
+          }
+          .width(44)
+          .height(44)
+          .backgroundColor($r('app.color.accent_color'))
+          .borderRadius(999)
+          .shadow({ radius: 20, color: '#2563EB40', offsetX: 0, offsetY: 6 })
+          .margin({ right: 20, bottom: this.rootTabBarReserveHeight + 16 })
+          .transition(
+            TransitionEffect.asymmetric(
+              TransitionEffect.opacity(0)
+                .combine(TransitionEffect.scale({ x: 0.75, y: 0.75 }))
+                .animation({ duration: 260, curve: Curve.FastOutSlowIn }),
+              TransitionEffect.opacity(0)
+                .combine(TransitionEffect.scale({ x: 0.75, y: 0.75 }))
+                .animation({ duration: 180, curve: Curve.EaseIn })
+            )
+          )
+          .onClick(() => {
+            this.onScrollToTopRequested();
+          })
+        }
+      }
+      .width('100%')
+      .height('100%')
+      .alignItems(HorizontalAlign.End)
+      .justifyContent(FlexAlign.End)
+      .hitTestBehavior(HitTestMode.Transparent)
 
       if (this.showBulkActionSheet) {
         this.bulkActionSheet()
@@ -746,10 +789,11 @@ export struct TorrentListPage {
     }
     .width('100%')
     .padding({ left: 12, right: 12, top: 10, bottom: 10 })
-    .backgroundColor($r('app.color.card_background'))
+    .backgroundColor($r('app.color.glass_bg_card'))
+    .backdropBlur(20)
     .border({
       width: 1,
-      color: $r('app.color.dashboard_border')
+      color: $r('app.color.glass_border')
     })
     .borderRadius(16)
     .alignItems(VerticalAlign.Center)
@@ -781,7 +825,24 @@ export struct TorrentListPage {
     Row({ space: 8 }) {
       ForEach(this.filterTabs, (tab: string, index?: number) => {
         if (index !== undefined) {
-          Row() {
+          Row({ space: 4 }) {
+            if (index === 0) {
+              SymbolGlyph($r('sys.symbol.list_bullet'))
+                .fontSize(13)
+                .fontColor([this.selectedTab === index ? $r('app.color.tab_active_fg') : $r('app.color.tab_inactive_fg')])
+            } else if (index === 1) {
+              SymbolGlyph($r('sys.symbol.arrow_down_circle'))
+                .fontSize(13)
+                .fontColor([this.selectedTab === index ? $r('app.color.tab_active_fg') : $r('app.color.tab_inactive_fg')])
+            } else if (index === 2) {
+              SymbolGlyph($r('sys.symbol.pause_circle'))
+                .fontSize(13)
+                .fontColor([this.selectedTab === index ? $r('app.color.tab_active_fg') : $r('app.color.tab_inactive_fg')])
+            } else {
+              SymbolGlyph($r('sys.symbol.checkmark_circle'))
+                .fontSize(13)
+                .fontColor([this.selectedTab === index ? $r('app.color.tab_active_fg') : $r('app.color.tab_inactive_fg')])
+            }
             Text(tab)
               .fontSize(11)
               .fontWeight(FontWeight.Medium)
@@ -790,10 +851,12 @@ export struct TorrentListPage {
           .layoutWeight(1)
           .height(36)
           .justifyContent(FlexAlign.Center)
-          .backgroundColor(this.selectedTab === index ? $r('app.color.tab_active_bg') : $r('app.color.card_background'))
+          .alignItems(VerticalAlign.Center)
+          .backgroundColor(this.selectedTab === index ? $r('app.color.tab_active_bg') : $r('app.color.glass_bg_card'))
+          .backdropBlur(this.selectedTab === index ? 0 : 20)
           .border({
             width: this.selectedTab === index ? 0 : 1,
-            color: $r('app.color.dashboard_border')
+            color: $r('app.color.glass_border')
           })
           .borderRadius(999)
           .onClick(() => {
@@ -812,11 +875,12 @@ export struct TorrentListPage {
         SymbolGlyph($r('sys.symbol.magnifyingglass'))
           .fontSize(15)
           .fontColor([$r('app.color.tab_inactive_fg')])
-        TextInput({ placeholder: '搜索任务 / 标签 / 分类', text: this.searchQuery })
+        TextInput({ placeholder: '搜索任务、标签或分类', text: this.searchQuery })
+          .placeholderFont({ size: 11, weight: FontWeight.Normal })
           .placeholderColor($r('app.color.tab_inactive_fg'))
-          .fontSize(12)
+          .fontSize(13)
           .fontColor($r('app.color.text_primary'))
-          .backgroundColor($r('app.color.card_background'))
+          .backgroundColor(Color.Transparent)
           .layoutWeight(1)
           .onChange((value: string) => {
             this.searchQuery = value;
@@ -848,14 +912,18 @@ export struct TorrentListPage {
       .layoutWeight(1)
       .height(44)
       .padding({ left: 14, right: 14 })
-      .backgroundColor($r('app.color.card_background'))
+      .backgroundColor($r('app.color.glass_bg_card'))
+      .backdropBlur(20)
       .border({
         width: 1,
-        color: $r('app.color.dashboard_border')
+        color: $r('app.color.glass_border')
       })
       .borderRadius(999)
 
-      Row() {
+      Row({ space: 5 }) {
+        SymbolGlyph($r('sys.symbol.slider_horizontal_2'))
+          .fontSize(15)
+          .fontColor([this.isFilterActive() ? $r('app.color.accent_color') : $r('app.color.text_primary')])
         Text(this.getCurrentSortLabel())
           .fontSize(12)
           .fontWeight(FontWeight.Medium)
@@ -863,17 +931,22 @@ export struct TorrentListPage {
       }
       .height(44)
       .padding({ left: 12, right: 12 })
-      .backgroundColor(this.isFilterActive() ? $r('app.color.dashboard_surface_info') : $r('app.color.card_background'))
+      .backgroundColor(this.isFilterActive() ? $r('app.color.dashboard_surface_info') : $r('app.color.glass_bg_card'))
+      .backdropBlur(20)
       .border({
         width: 1,
-        color: this.isFilterActive() ? $r('app.color.download_selected_border') : $r('app.color.dashboard_border')
+        color: this.isFilterActive() ? $r('app.color.download_selected_border') : $r('app.color.glass_border')
       })
       .borderRadius(999)
       .onClick(() => {
         this.toggleFilterPanel();
       })
 
-      Row() {
+      Row({ space: 5 }) {
+        SymbolGlyph(this.torrents.length === 0 ? $r('sys.symbol.plus') :
+          (this.selectionMode ? $r('sys.symbol.xmark') : $r('sys.symbol.checkmark_circle')))
+          .fontSize(this.torrents.length === 0 ? 15 : 14)
+          .fontColor([$r('app.color.accent_color')])
         Text(this.torrents.length === 0 ? '添加' : (this.selectionMode ? '取消' : '多选'))
           .fontSize(12)
           .fontWeight(FontWeight.Medium)
@@ -881,10 +954,11 @@ export struct TorrentListPage {
       }
       .height(44)
       .padding({ left: 12, right: 12 })
-      .backgroundColor($r('app.color.dashboard_surface_info'))
+      .backgroundColor(this.selectionMode ? $r('app.color.glass_bg_card') : $r('app.color.dashboard_surface_info'))
+      .backdropBlur(20)
       .border({
         width: 1,
-        color: $r('app.color.dashboard_border')
+        color: this.selectionMode ? $r('app.color.glass_border') : $r('app.color.download_selected_border')
       })
       .borderRadius(999)
       .onClick(() => {
@@ -1078,10 +1152,11 @@ export struct TorrentListPage {
     }
     .width('100%')
     .padding(14)
-    .backgroundColor($r('app.color.card_background'))
+    .backgroundColor($r('app.color.glass_bg_card'))
+    .backdropBlur(24)
     .border({
       width: 1,
-      color: $r('app.color.dashboard_border')
+      color: $r('app.color.glass_border')
     })
     .borderRadius(24)
   }
@@ -1104,7 +1179,10 @@ export struct TorrentListPage {
         .backgroundColor($r('app.color.dashboard_surface_info'))
         .borderRadius(999)
 
-        Row() {
+        Row({ space: 6 }) {
+          SymbolGlyph($r('sys.symbol.checkmark_circle'))
+            .fontSize(14)
+            .fontColor([$r('app.color.text_primary')])
           Text('全选')
             .fontSize(12)
             .fontWeight(FontWeight.Medium)
@@ -1121,8 +1199,11 @@ export struct TorrentListPage {
           this.toggleSelectAll();
         })
 
-        Row() {
-          Text(this.getBulkActionButtonText())
+        Row({ space: 6 }) {
+          SymbolGlyph(this.shouldResumeSelection() ? $r('sys.symbol.play_fill') : $r('sys.symbol.pause_fill'))
+            .fontSize(13)
+            .fontColor([$r('app.color.text_primary')])
+          Text(this.shouldResumeSelection() ? '继续' : '暂停')
             .fontSize(12)
             .fontWeight(FontWeight.Medium)
             .fontColor($r('app.color.text_primary'))
@@ -1138,8 +1219,11 @@ export struct TorrentListPage {
           this.requestBulkAction(this.shouldResumeSelection() ? 'resume' : 'pause');
         })
 
-        Row() {
-          Text('设置分类')
+        Row({ space: 6 }) {
+          SymbolGlyph($r('sys.symbol.folder'))
+            .fontSize(14)
+            .fontColor([$r('app.color.text_primary')])
+          Text('分类')
             .fontSize(12)
             .fontWeight(FontWeight.Medium)
             .fontColor($r('app.color.text_primary'))
@@ -1155,7 +1239,10 @@ export struct TorrentListPage {
           this.requestBulkAction('setCategory');
         })
 
-        Row() {
+        Row({ space: 6 }) {
+          SymbolGlyph($r('sys.symbol.trash'))
+            .fontSize(14)
+            .fontColor([$r('app.color.error_color')])
           Text('删除')
             .fontSize(12)
             .fontWeight(FontWeight.Medium)
@@ -1179,10 +1266,11 @@ export struct TorrentListPage {
     .scrollBar(BarState.Off)
     .scrollable(ScrollDirection.Horizontal)
     .width('100%')
-    .backgroundColor($r('app.color.card_background'))
+    .backgroundColor($r('app.color.glass_bg_card'))
+    .backdropBlur(20)
     .border({
       width: 1,
-      color: $r('app.color.dashboard_border')
+      color: $r('app.color.glass_border')
     })
     .borderRadius(20)
   }
@@ -1210,10 +1298,10 @@ export struct TorrentListPage {
           .fontWeight(FontWeight.Medium)
           .fontColor($r('app.color.accent_color'))
           .padding({ left: 10, right: 10, top: 6, bottom: 6 })
-          .backgroundColor($r('app.color.dashboard_surface_soft'))
+          .backgroundColor($r('app.color.glass_bg_chip'))
           .border({
             width: 1,
-            color: $r('app.color.dashboard_border')
+            color: $r('app.color.glass_border')
           })
           .borderRadius(999)
       }
@@ -1241,19 +1329,41 @@ export struct TorrentListPage {
                 this.toggleSelection(hash);
               }
             })
+            .transition(
+              TransitionEffect.asymmetric(
+                TransitionEffect.opacity(0)
+                  .combine(TransitionEffect.translate({ y: 20 }))
+                  .animation({ duration: 350, curve: Curve.FastOutSlowIn }),
+                TransitionEffect.opacity(0)
+                  .combine(TransitionEffect.translate({ y: -8 }))
+                  .animation({ duration: 200, curve: Curve.EaseIn })
+              )
+            )
           }, (torrent: TorrentInfo) => this.getTorrentRenderKey(torrent))
         }
         .width('100%')
+        .transition(
+          TransitionEffect.opacity(0)
+            .combine(TransitionEffect.translate({ y: 12 }))
+            .animation({ duration: 320, curve: Curve.FastOutSlowIn })
+        )
       }
     }
     .width('100%')
     .padding({ left: 12, right: 12, top: 12, bottom: 12 })
-    .backgroundColor($r('app.color.card_background'))
+    .backgroundColor($r('app.color.glass_bg_card'))
+    .backdropBlur(24)
     .border({
       width: 1,
-      color: $r('app.color.dashboard_border')
+      color: $r('app.color.glass_border')
     })
     .borderRadius(24)
+    .shadow({
+      radius: 20,
+      color: '#0F172A14',
+      offsetX: 0,
+      offsetY: 8
+    })
   }
 
   @Builder
@@ -1339,10 +1449,10 @@ export struct TorrentListPage {
     }
     .width('100%')
     .padding(12)
-    .backgroundColor($r('app.color.dashboard_surface_soft'))
+    .backgroundColor($r('app.color.glass_bg_chip'))
     .border({
       width: 1,
-      color: $r('app.color.dashboard_border')
+      color: $r('app.color.glass_border')
     })
     .borderRadius(20)
   }
@@ -1417,10 +1527,10 @@ export struct TorrentListPage {
     }
     .width('100%')
     .padding({ top: 26, bottom: 26, left: 18, right: 18 })
-    .backgroundColor($r('app.color.dashboard_surface_soft'))
+    .backgroundColor($r('app.color.glass_bg_chip'))
     .border({
       width: 1,
-      color: $r('app.color.dashboard_border')
+      color: $r('app.color.glass_border')
     })
     .borderRadius(22)
     .alignItems(HorizontalAlign.Center)
@@ -1483,10 +1593,10 @@ export struct TorrentListPage {
     }
     .width('100%')
     .padding({ top: 28, bottom: 28, left: 18, right: 18 })
-    .backgroundColor($r('app.color.dashboard_surface_soft'))
+    .backgroundColor($r('app.color.glass_bg_chip'))
     .border({
       width: 1,
-      color: $r('app.color.dashboard_border')
+      color: $r('app.color.glass_border')
     })
     .borderRadius(22)
     .alignItems(HorizontalAlign.Center)

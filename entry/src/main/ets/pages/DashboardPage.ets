@@ -391,10 +391,10 @@ export struct DashboardPage {
       return '示例体验';
     }
     if (this.connectionStatus === 'connected') {
-      return '服务器在线';
+      return '公网连接';
     }
     if (this.connectionStatus === 'firewalled') {
-      return '连接受限';
+      return '内网连接';
     }
     if (this.connectionStatus === 'disconnected') {
       return '连接断开';
@@ -420,10 +420,10 @@ export struct DashboardPage {
       return '演示数据';
     }
     if (this.connectionStatus === 'connected') {
-      return '稳定';
+      return '公网';
     }
     if (this.connectionStatus === 'firewalled') {
-      return '受限';
+      return '内网';
     }
     if (this.connectionStatus === 'disconnected') {
       return '离线';
@@ -462,8 +462,11 @@ export struct DashboardPage {
       return `${bytesPerSecond.toFixed(0)} B/s`;
     }
     const kiloBytes = bytesPerSecond / 1024;
+    if (kiloBytes < 10) {
+      return `${kiloBytes.toFixed(1)} KB/s`;
+    }
     if (kiloBytes < 1000) {
-      return `${kiloBytes.toFixed(2)} KB/s`;
+      return `${kiloBytes.toFixed(0)} KB/s`;
     }
     if (bytesPerSecond < 1024 * 1024 * 1024) {
       return `${(bytesPerSecond / (1024 * 1024)).toFixed(2)} MB/s`;
@@ -1038,7 +1041,8 @@ export struct DashboardPage {
               .borderRadius(10)
           } else {
             Text(this.formatDashboardSpeed(this.dlSpeed))
-              .fontSize(26)
+              .minFontSize(14)
+              .maxFontSize(26)
               .fontWeight(FontWeight.Bold)
               .letterSpacing(-0.5)
               .fontColor($r('app.color.text_primary'))
@@ -1079,7 +1083,8 @@ export struct DashboardPage {
               .borderRadius(10)
           } else {
             Text(this.formatDashboardSpeed(this.ulSpeed))
-              .fontSize(26)
+              .minFontSize(14)
+              .maxFontSize(26)
               .fontWeight(FontWeight.Bold)
               .letterSpacing(-0.5)
               .fontColor($r('app.color.text_primary'))
@@ -1497,105 +1502,153 @@ export struct DashboardPage {
 
   @Builder
   globalLimitSheet() {
-    Stack({ alignContent: Alignment.Center }) {
+    Stack({ alignContent: Alignment.Bottom }) {
       Row()
         .width('100%')
         .height('100%')
         .backgroundColor($r('app.color.dashboard_overlay'))
+        .transition(TransitionEffect.opacity(0).animation({ duration: 260, curve: Curve.EaseOut }))
         .onClick(() => {
           if (!this.isSettingGlobalLimit) {
             this.showGlobalLimitSheet = false;
           }
         })
 
-      Column({ space: 14 }) {
-        Column({ space: 6 }) {
-          Text('全局限速')
-            .fontSize(18)
-            .fontWeight(FontWeight.Bold)
-            .fontColor($r('app.color.text_primary'))
-          Text('对所有任务生效，0 或留空表示不限速（KB/s）')
-            .fontSize(13)
-            .fontColor($r('app.color.text_secondary'))
-        }
-        .width('100%')
-        .alignItems(HorizontalAlign.Start)
+      Column() {
+        Row()
+          .width(36)
+          .height(4)
+          .backgroundColor($r('app.color.dashboard_border'))
+          .borderRadius(2)
+          .alignSelf(ItemAlign.Center)
+          .margin({ top: 10, bottom: 4 })
 
-        Column({ space: 10 }) {
-          Column({ space: 6 }) {
-            Text('全局下载限速（KB/s）')
-              .fontSize(12)
-              .fontColor($r('app.color.text_secondary'))
-              .width('100%')
-            TextInput({ placeholder: '0 = 不限速', text: this.globalLimitDlInput })
-              .type(InputType.Number)
-              .height(46)
-              .placeholderColor($r('app.color.text_hint'))
-              .fontColor($r('app.color.text_primary'))
-              .caretColor($r('app.color.accent_color'))
-              .backgroundColor($r('app.color.dashboard_surface_soft'))
-              .borderRadius(12)
-              .onChange((v: string) => {
-                this.globalLimitDlInput = v;
-              })
-          }
-
-          Column({ space: 6 }) {
-            Text('全局上传限速（KB/s）')
-              .fontSize(12)
-              .fontColor($r('app.color.text_secondary'))
-              .width('100%')
-            TextInput({ placeholder: '0 = 不限速', text: this.globalLimitUlInput })
-              .type(InputType.Number)
-              .height(46)
-              .placeholderColor($r('app.color.text_hint'))
-              .fontColor($r('app.color.text_primary'))
-              .caretColor($r('app.color.accent_color'))
-              .backgroundColor($r('app.color.dashboard_surface_soft'))
-              .borderRadius(12)
-              .onChange((v: string) => {
-                this.globalLimitUlInput = v;
-              })
-          }
-        }
-        .width('100%')
-
-        Column({ space: 8 }) {
-          Button(this.isSettingGlobalLimit ? '设置中...' : '确认设置')
-            .width('100%')
-            .height(46)
-            .fontSize(14)
-            .fontColor($r('app.color.dashboard_primary_action_fg'))
-            .backgroundColor($r('app.color.dashboard_primary_action_bg'))
-            .borderRadius(14)
-            .enabled(!this.isSettingGlobalLimit)
-            .onClick(() => {
-              this.handleSetGlobalLimit();
-            })
-
-          Button('取消')
-            .width('100%')
-            .height(42)
-            .fontSize(14)
-            .fontColor($r('app.color.text_secondary'))
-            .backgroundColor($r('app.color.dashboard_surface_muted'))
-            .borderRadius(14)
-            .onClick(() => {
-              if (!this.isSettingGlobalLimit) {
-                this.showGlobalLimitSheet = false;
-              }
-            })
-        }
-        .width('100%')
+        this.globalLimitSheetContent()
       }
-      .width(290)
-      .padding(18)
+      .width('100%')
       .backgroundColor($r('app.color.card_background'))
-      .borderRadius(24)
-      .alignItems(HorizontalAlign.Center)
+      .borderRadius({ topLeft: 28, topRight: 28, bottomLeft: 0, bottomRight: 0 })
+      .transition(
+        TransitionEffect.translate({ y: 700 }).animation({ duration: 340, curve: Curve.FastOutSlowIn })
+      )
     }
     .width('100%')
     .height('100%')
+  }
+
+  @Builder
+  globalLimitSheetContent() {
+    Column({ space: 0 }) {
+      Column({ space: 6 }) {
+        Text('全局限速')
+          .fontSize(20)
+          .fontWeight(FontWeight.Bold)
+          .fontColor($r('app.color.text_primary'))
+        Text('对所有任务生效，0 或留空表示不限速')
+          .fontSize(13)
+          .fontColor($r('app.color.text_secondary'))
+      }
+      .width('100%')
+      .alignItems(HorizontalAlign.Start)
+      .padding({ bottom: 20 })
+
+      Column({ space: 8 }) {
+        Text('↓ 下载速度上限（KB/s）')
+          .fontSize(12)
+          .fontWeight(FontWeight.Medium)
+          .fontColor($r('app.color.text_secondary'))
+          .width('100%')
+        TextInput({ placeholder: '0 = 不限速', text: this.globalLimitDlInput })
+          .type(InputType.Number)
+          .height(48)
+          .placeholderColor($r('app.color.text_hint'))
+          .fontColor($r('app.color.text_primary'))
+          .caretColor($r('app.color.accent_color'))
+          .backgroundColor($r('app.color.dashboard_surface_soft'))
+          .borderRadius(14)
+          .onChange((v: string) => {
+            this.globalLimitDlInput = v;
+          })
+        Row({ space: 8 }) {
+          this.speedPresetChip('不限速', '', true)
+          this.speedPresetChip('1 MB/s', '1024', true)
+          this.speedPresetChip('5 MB/s', '5120', true)
+          this.speedPresetChip('10 MB/s', '10240', true)
+        }
+        .width('100%')
+      }
+      .width('100%')
+      .padding({ bottom: 20 })
+
+      Column({ space: 8 }) {
+        Text('↑ 上传速度上限（KB/s）')
+          .fontSize(12)
+          .fontWeight(FontWeight.Medium)
+          .fontColor($r('app.color.text_secondary'))
+          .width('100%')
+        TextInput({ placeholder: '0 = 不限速', text: this.globalLimitUlInput })
+          .type(InputType.Number)
+          .height(48)
+          .placeholderColor($r('app.color.text_hint'))
+          .fontColor($r('app.color.text_primary'))
+          .caretColor($r('app.color.accent_color'))
+          .backgroundColor($r('app.color.dashboard_surface_soft'))
+          .borderRadius(14)
+          .onChange((v: string) => {
+            this.globalLimitUlInput = v;
+          })
+        Row({ space: 8 }) {
+          this.speedPresetChip('不限速', '', false)
+          this.speedPresetChip('512 KB', '512', false)
+          this.speedPresetChip('1 MB/s', '1024', false)
+          this.speedPresetChip('2 MB/s', '2048', false)
+        }
+        .width('100%')
+      }
+      .width('100%')
+      .padding({ bottom: 28 })
+
+      Button(this.isSettingGlobalLimit ? '设置中...' : '确认设置')
+        .width('100%')
+        .height(50)
+        .fontSize(15)
+        .fontWeight(FontWeight.Medium)
+        .fontColor($r('app.color.dashboard_primary_action_fg'))
+        .backgroundColor($r('app.color.dashboard_primary_action_bg'))
+        .borderRadius(999)
+        .enabled(!this.isSettingGlobalLimit)
+        .onClick(() => {
+          this.handleSetGlobalLimit();
+        })
+    }
+    .width('100%')
+    .padding({ left: 24, right: 24, top: 12, bottom: 36 })
+  }
+
+  @Builder
+  speedPresetChip(label: string, value: string, isDownload: boolean) {
+    Text(label)
+      .fontSize(12)
+      .fontWeight(FontWeight.Medium)
+      .fontColor(
+        (isDownload ? this.globalLimitDlInput : this.globalLimitUlInput) === value
+          ? $r('app.color.accent_color')
+          : $r('app.color.text_secondary')
+      )
+      .padding({ left: 12, right: 12, top: 7, bottom: 7 })
+      .backgroundColor(
+        (isDownload ? this.globalLimitDlInput : this.globalLimitUlInput) === value
+          ? $r('app.color.dashboard_surface_info')
+          : $r('app.color.dashboard_surface_soft')
+      )
+      .borderRadius(999)
+      .onClick(() => {
+        if (isDownload) {
+          this.globalLimitDlInput = value;
+        } else {
+          this.globalLimitUlInput = value;
+        }
+      })
   }
 
   @Builder

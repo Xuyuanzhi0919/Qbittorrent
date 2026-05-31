@@ -136,8 +136,22 @@ export struct SettingsPage {
 
   build() {
     Stack() {
+      Column() {
+        Row()
+          .width('100%')
+          .height(440)
+          .linearGradient({
+            angle: 180,
+            colors: [[$r('app.color.page_gradient_top'), 0], [$r('app.color.page_gradient_mid'), 0.5], [$r('app.color.page_background'), 1]]
+          })
+        Blank()
+      }
+      .width('100%')
+      .height('100%')
+      .backgroundColor($r('app.color.page_background'))
+
       Scroll() {
-        Column({ space: 0 }) {
+        Column({ space: 12 }) {
           if (this.actionMessage.length > 0) {
             this.actionBanner()
           }
@@ -146,13 +160,15 @@ export struct SettingsPage {
 
           this.statusCard()
 
-          this.sectionLabel('连接配置')
+          this.overviewGrid()
+
+          this.sectionLabel('连接')
           this.connectionGroup()
 
-          this.sectionLabel('轮询频率')
+          this.sectionLabel('偏好')
           this.pollingGroup()
 
-          this.sectionLabel('关于')
+          this.sectionLabel('应用')
           this.aboutGroup()
 
           this.disconnectArea()
@@ -166,6 +182,7 @@ export struct SettingsPage {
       .edgeEffect(EdgeEffect.Spring)
       .width('100%')
       .height('100%')
+      .backgroundColor(Color.Transparent)
       .blur(this.showDisconnectConfirm ? 16 : 0)
       .animation({ duration: 220, curve: Curve.EaseOut })
 
@@ -196,75 +213,182 @@ export struct SettingsPage {
     }
     .width('100%')
     .padding({ left: 12, right: 12, top: 10, bottom: 10 })
-    .backgroundColor($r('app.color.card_background'))
-    .border({ width: 1, color: $r('app.color.dashboard_border') })
+    .backgroundColor($r('app.color.glass_bg_card'))
+    .backdropBlur(20)
+    .border({ width: 1, color: $r('app.color.glass_border') })
     .borderRadius(16)
-    .margin({ bottom: 12 })
+    .alignItems(VerticalAlign.Center)
   }
 
   @Builder
   headerSection() {
-    Text('设置')
-      .fontSize(28)
-      .fontWeight(FontWeight.Bold)
-      .letterSpacing(-0.5)
-      .fontColor($r('app.color.text_primary'))
-      .width('100%')
-      .margin({ bottom: 20 })
+    Row() {
+      Text('我的')
+        .fontSize(28)
+        .fontWeight(FontWeight.Bold)
+        .letterSpacing(-0.5)
+        .fontColor($r('app.color.text_primary'))
+
+      Blank()
+
+      Row({ space: 8 }) {
+        Circle()
+          .width(8)
+          .height(8)
+          .fill(this.getStatusColor())
+        Text(this.getStatusText())
+          .fontSize(12)
+          .fontWeight(FontWeight.Medium)
+          .fontColor($r('app.color.text_primary'))
+      }
+      .padding({ left: 12, right: 12, top: 8, bottom: 8 })
+      .backgroundColor($r('app.color.glass_bg_card'))
+      .backdropBlur(24)
+      .border({ width: 1, color: $r('app.color.glass_border') })
+      .borderRadius(999)
+    }
+    .width('100%')
+    .height(46)
+    .alignItems(VerticalAlign.Center)
   }
 
   @Builder
   statusCard() {
-    Row() {
-      Column({ space: 6 }) {
-        Row({ space: 8 }) {
-          Row()
-            .width(8)
-            .height(8)
-            .backgroundColor(this.getStatusColor())
-            .borderRadius(999)
-          Text(this.getStatusText())
-            .fontSize(12)
-            .fontWeight(FontWeight.Bold)
-            .fontColor(this.getStatusColor())
+    Column({ space: 18 }) {
+      Row({ space: 14 }) {
+        Row() {
+          SymbolGlyph($r('sys.symbol.person_fill'))
+            .fontSize(24)
+            .fontColor([$r('app.color.accent_color')])
         }
-        .padding({ left: 10, right: 10, top: 5, bottom: 5 })
-        .backgroundColor(this.getStatusBgColor())
-        .borderRadius(999)
+        .width(54)
+        .height(54)
+        .justifyContent(FlexAlign.Center)
+        .alignItems(VerticalAlign.Center)
+        .backgroundColor($r('app.color.dashboard_surface_info'))
+        .border({ width: 1, color: $r('app.color.download_selected_border') })
+        .borderRadius(20)
 
+        Column({ space: 5 }) {
+          Text(this.guestMode ? '示例体验账户' : 'qBittorrent 账户')
+            .fontSize(18)
+            .fontWeight(FontWeight.Bold)
+            .letterSpacing(-0.5)
+            .fontColor($r('app.color.text_primary'))
+            .maxLines(1)
+            .textOverflow({ overflow: TextOverflow.Ellipsis })
+          Text(this.getAccountText())
+            .fontSize(12)
+            .fontColor($r('app.color.text_secondary'))
+            .maxLines(1)
+            .textOverflow({ overflow: TextOverflow.Ellipsis })
+        }
+        .layoutWeight(1)
+        .alignItems(HorizontalAlign.Start)
+
+        Text('管理连接')
+          .fontSize(12)
+          .fontWeight(FontWeight.Medium)
+          .fontColor($r('app.color.accent_color'))
+          .padding({ left: 14, right: 14, top: 8, bottom: 8 })
+          .backgroundColor($r('app.color.dashboard_surface_info'))
+          .border({ width: 1, color: $r('app.color.download_selected_border') })
+          .borderRadius(999)
+          .onClick(() => {
+            this.openServerConfig();
+          })
+      }
+      .width('100%')
+      .alignItems(VerticalAlign.Center)
+
+      Divider()
+        .color($r('app.color.glass_border'))
+
+      Column({ space: 6 }) {
+        Text('当前服务器')
+          .fontSize(12)
+          .fontColor($r('app.color.text_secondary'))
         Text(this.getServerAddressText())
-          .fontSize(14)
+          .fontSize(15)
+          .fontWeight(FontWeight.Medium)
+          .fontColor($r('app.color.text_primary'))
+          .maxLines(2)
+          .textOverflow({ overflow: TextOverflow.Ellipsis })
+          .width('100%')
+      }
+      .width('100%')
+      .alignItems(HorizontalAlign.Start)
+    }
+    .width('100%')
+    .padding(20)
+    .backgroundColor($r('app.color.glass_bg_card'))
+    .backdropBlur(24)
+    .border({ width: 1, color: $r('app.color.glass_border') })
+    .borderRadius(28)
+    .shadow({
+      radius: 20,
+      color: '#0F172A14',
+      offsetX: 0,
+      offsetY: 8
+    })
+  }
+
+  @Builder
+  overviewGrid() {
+    Row({ space: 10 }) {
+      this.overviewTile(
+        '连接状态',
+        this.getStatusText(),
+        $r('sys.symbol.link'),
+        this.getStatusColor(),
+        this.getStatusBgColor()
+      )
+      this.overviewTile(
+        '刷新频率',
+        this.getPollingLabel(),
+        $r('sys.symbol.arrow_2_circlepath'),
+        $r('app.color.accent_color'),
+        $r('app.color.dashboard_surface_info')
+      )
+    }
+    .width('100%')
+  }
+
+  @Builder
+  overviewTile(label: string, value: string, icon: Resource, toneColor: Resource, surfaceColor: Resource) {
+    Column({ space: 10 }) {
+      Row() {
+        SymbolGlyph(icon)
+          .fontSize(16)
+          .fontColor([toneColor])
+        Blank()
+        Circle()
+          .width(8)
+          .height(8)
+          .fill(toneColor)
+      }
+      .width('100%')
+      .alignItems(VerticalAlign.Center)
+
+      Column({ space: 4 }) {
+        Text(value)
+          .fontSize(17)
           .fontWeight(FontWeight.Bold)
           .fontColor($r('app.color.text_primary'))
           .maxLines(1)
           .textOverflow({ overflow: TextOverflow.Ellipsis })
-          .width('100%')
-
-        Text(this.guestMode ? '演示模式' : (this.serverUsername.length > 0 ? `账户：${this.serverUsername}` : '未配置账户'))
-          .fontSize(12)
+        Text(label)
+          .fontSize(11)
           .fontColor($r('app.color.text_secondary'))
       }
-      .layoutWeight(1)
+      .width('100%')
       .alignItems(HorizontalAlign.Start)
-
-      Text('管理连接')
-        .fontSize(12)
-        .fontWeight(FontWeight.Medium)
-        .fontColor($r('app.color.accent_color'))
-        .padding({ left: 14, right: 14, top: 8, bottom: 8 })
-        .backgroundColor($r('app.color.dashboard_surface_info'))
-        .borderRadius(999)
-        .onClick(() => {
-          this.openServerConfig();
-        })
     }
-    .width('100%')
-    .padding({ left: 16, right: 16, top: 16, bottom: 16 })
-    .backgroundColor($r('app.color.card_background'))
-    .border({ width: 1, color: $r('app.color.dashboard_border') })
+    .layoutWeight(1)
+    .padding({ left: 14, right: 14, top: 14, bottom: 14 })
+    .backgroundColor(surfaceColor)
+    .border({ width: 1, color: $r('app.color.glass_border') })
     .borderRadius(20)
-    .alignItems(VerticalAlign.Center)
-    .margin({ bottom: 20 })
   }
 
   @Builder
@@ -274,88 +398,102 @@ export struct SettingsPage {
       .fontWeight(FontWeight.Medium)
       .fontColor($r('app.color.text_secondary'))
       .width('100%')
-      .padding({ left: 4, bottom: 8 })
+      .padding({ left: 4, top: 8, bottom: 0 })
   }
 
   @Builder
   connectionGroup() {
     Column() {
-      Row() {
-        Column({ space: 3 }) {
-          Text('服务器地址')
-            .fontSize(12)
-            .fontColor($r('app.color.text_secondary'))
-          Text(this.getServerAddressText())
-            .fontSize(14)
-            .fontWeight(FontWeight.Medium)
-            .fontColor($r('app.color.text_primary'))
-            .maxLines(1)
-            .textOverflow({ overflow: TextOverflow.Ellipsis })
-        }
-        .layoutWeight(1)
-        .alignItems(HorizontalAlign.Start)
-
-        SymbolGlyph($r('sys.symbol.chevron_right'))
-          .fontSize(16)
-          .fontColor([$r('app.color.tab_inactive_fg')])
-      }
-      .width('100%')
-      .padding({ left: 16, right: 14, top: 14, bottom: 14 })
-      .alignItems(VerticalAlign.Center)
-      .onClick(() => {
+      this.settingsRow('服务器地址', this.getServerAddressText(), $r('sys.symbol.link'), () => {
         this.openServerConfig();
       })
 
       Divider()
         .color($r('app.color.dashboard_border_soft'))
-        .margin({ left: 16 })
+        .margin({ left: 52 })
 
-      Row() {
-        Column({ space: 3 }) {
-          Text('登录账户')
-            .fontSize(12)
-            .fontColor($r('app.color.text_secondary'))
-          Text(this.getAccountText())
-            .fontSize(14)
-            .fontWeight(FontWeight.Medium)
-            .fontColor($r('app.color.text_primary'))
-            .maxLines(1)
-            .textOverflow({ overflow: TextOverflow.Ellipsis })
-        }
-        .layoutWeight(1)
-        .alignItems(HorizontalAlign.Start)
-
-        SymbolGlyph($r('sys.symbol.chevron_right'))
-          .fontSize(16)
-          .fontColor([$r('app.color.tab_inactive_fg')])
-      }
-      .width('100%')
-      .padding({ left: 16, right: 14, top: 14, bottom: 14 })
-      .alignItems(VerticalAlign.Center)
-      .onClick(() => {
+      this.settingsRow('登录账户', this.getAccountText(), $r('sys.symbol.person'), () => {
         this.openServerConfig();
       })
     }
     .width('100%')
-    .backgroundColor($r('app.color.card_background'))
-    .border({ width: 1, color: $r('app.color.dashboard_border') })
-    .borderRadius(20)
+    .backgroundColor($r('app.color.glass_bg_card'))
+    .backdropBlur(22)
+    .border({ width: 1, color: $r('app.color.glass_border') })
+    .borderRadius(24)
     .clip(true)
-    .margin({ bottom: 20 })
+  }
+
+  @Builder
+  settingsRow(label: string, value: string, icon: Resource, action: () => void) {
+    Row({ space: 12 }) {
+      Row() {
+        SymbolGlyph(icon)
+          .fontSize(16)
+          .fontColor([$r('app.color.accent_color')])
+      }
+      .width(28)
+      .height(28)
+      .justifyContent(FlexAlign.Center)
+      .alignItems(VerticalAlign.Center)
+      .backgroundColor($r('app.color.dashboard_surface_info'))
+      .borderRadius(999)
+
+      Column({ space: 3 }) {
+        Text(label)
+          .fontSize(12)
+          .fontColor($r('app.color.text_secondary'))
+        Text(value)
+          .fontSize(14)
+          .fontWeight(FontWeight.Medium)
+          .fontColor($r('app.color.text_primary'))
+          .maxLines(1)
+          .textOverflow({ overflow: TextOverflow.Ellipsis })
+      }
+      .layoutWeight(1)
+      .alignItems(HorizontalAlign.Start)
+
+      SymbolGlyph($r('sys.symbol.chevron_right'))
+        .fontSize(16)
+        .fontColor([$r('app.color.tab_inactive_fg')])
+    }
+    .width('100%')
+    .padding({ left: 14, right: 14, top: 14, bottom: 14 })
+    .alignItems(VerticalAlign.Center)
+    .onClick(action)
   }
 
   @Builder
   pollingGroup() {
-    Column({ space: 12 }) {
+    Column({ space: 14 }) {
       Row() {
-        Text('数据刷新间隔')
-          .fontSize(14)
-          .fontWeight(FontWeight.Medium)
-          .fontColor($r('app.color.text_primary'))
-        Blank()
-        Text(`当前 ${this.getPollingLabel()}`)
-          .fontSize(12)
-          .fontWeight(FontWeight.Medium)
+        Row() {
+          SymbolGlyph($r('sys.symbol.arrow_2_circlepath'))
+            .fontSize(16)
+            .fontColor([$r('app.color.accent_color')])
+        }
+        .width(30)
+        .height(30)
+        .justifyContent(FlexAlign.Center)
+        .alignItems(VerticalAlign.Center)
+        .backgroundColor($r('app.color.dashboard_surface_info'))
+        .borderRadius(999)
+
+        Column({ space: 3 }) {
+          Text('数据刷新间隔')
+            .fontSize(14)
+            .fontWeight(FontWeight.Medium)
+            .fontColor($r('app.color.text_primary'))
+          Text('影响仪表盘和下载列表更新频率')
+            .fontSize(12)
+            .fontColor($r('app.color.text_secondary'))
+        }
+        .layoutWeight(1)
+        .alignItems(HorizontalAlign.Start)
+
+        Text(this.getPollingLabel())
+          .fontSize(13)
+          .fontWeight(FontWeight.Bold)
           .fontColor($r('app.color.accent_color'))
       }
       .width('100%')
@@ -387,53 +525,46 @@ export struct SettingsPage {
     }
     .width('100%')
     .padding({ left: 16, right: 16, top: 14, bottom: 14 })
-    .backgroundColor($r('app.color.card_background'))
-    .border({ width: 1, color: $r('app.color.dashboard_border') })
-    .borderRadius(20)
-    .margin({ bottom: 20 })
+    .backgroundColor($r('app.color.glass_bg_card'))
+    .backdropBlur(22)
+    .border({ width: 1, color: $r('app.color.glass_border') })
+    .borderRadius(24)
   }
 
   @Builder
   aboutGroup() {
     Column() {
-      Row() {
-        Text('应用版本')
-          .fontSize(14)
-          .fontWeight(FontWeight.Medium)
-          .fontColor($r('app.color.text_primary'))
-        Blank()
-        Text('v1.0.0')
-          .fontSize(13)
-          .fontColor($r('app.color.text_secondary'))
-      }
-      .width('100%')
-      .padding({ left: 16, right: 16, top: 14, bottom: 14 })
-      .alignItems(VerticalAlign.Center)
+      this.infoRow('应用版本', 'v1.0.0')
 
       Divider()
         .color($r('app.color.dashboard_border_soft'))
         .margin({ left: 16 })
 
-      Row() {
-        Text('WebUI API')
-          .fontSize(14)
-          .fontWeight(FontWeight.Medium)
-          .fontColor($r('app.color.text_primary'))
-        Blank()
-        Text('qBittorrent 5.x')
-          .fontSize(13)
-          .fontColor($r('app.color.text_secondary'))
-      }
-      .width('100%')
-      .padding({ left: 16, right: 16, top: 14, bottom: 14 })
-      .alignItems(VerticalAlign.Center)
+      this.infoRow('WebUI API', 'qBittorrent 5.x')
     }
     .width('100%')
-    .backgroundColor($r('app.color.card_background'))
-    .border({ width: 1, color: $r('app.color.dashboard_border') })
-    .borderRadius(20)
+    .backgroundColor($r('app.color.glass_bg_card'))
+    .backdropBlur(22)
+    .border({ width: 1, color: $r('app.color.glass_border') })
+    .borderRadius(24)
     .clip(true)
-    .margin({ bottom: 20 })
+  }
+
+  @Builder
+  infoRow(label: string, value: string) {
+    Row() {
+      Text(label)
+        .fontSize(14)
+        .fontWeight(FontWeight.Medium)
+        .fontColor($r('app.color.text_primary'))
+      Blank()
+      Text(value)
+        .fontSize(13)
+        .fontColor($r('app.color.text_secondary'))
+    }
+    .width('100%')
+    .padding({ left: 16, right: 16, top: 14, bottom: 14 })
+    .alignItems(VerticalAlign.Center)
   }
 
   @Builder
@@ -452,7 +583,7 @@ export struct SettingsPage {
       width: 1,
       color: this.guestMode ? $r('app.color.download_selected_border') : $r('app.color.download_warn_border')
     })
-    .borderRadius(20)
+    .borderRadius(999)
     .onClick(() => {
       if (this.isDisconnecting) {
         return;

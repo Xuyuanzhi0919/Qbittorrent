@@ -360,12 +360,9 @@ export struct TorrentDetailPage {
     return FormatUtils.formatSpeed(this.torrentInfo.upspeed);
   }
 
-  private getProgressWidth(maxWidth: number): number {
-    if (this.torrentInfo.progress <= 0) {
-      return 0;
-    }
-    const width = Math.floor(maxWidth * this.torrentInfo.progress);
-    return Math.min(maxWidth, Math.max(24, width));
+  private getProgressPercentText(): string {
+    const percent: number = Math.max(0, Math.min(100, Math.floor(this.torrentInfo.progress * 100)));
+    return `${percent}%`;
   }
 
   private getStatusText(): string {
@@ -379,6 +376,38 @@ export struct TorrentDetailPage {
       return '已完成';
     }
     return this.torrentInfo.getStateLabel();
+  }
+
+  private getStatusFillColor(): ResourceStr {
+    if (this.torrentInfo.isDownloading()) {
+      return $r('app.color.dashboard_surface_info');
+    }
+    if (this.torrentInfo.isPaused()) {
+      return $r('app.color.download_pause_bg');
+    }
+    if (this.torrentInfo.isCompleted()) {
+      return $r('app.color.dashboard_surface_success');
+    }
+    if (this.torrentInfo.state === 'error' || this.torrentInfo.state === 'missingFiles') {
+      return $r('app.color.dashboard_surface_danger');
+    }
+    return $r('app.color.dashboard_surface_muted');
+  }
+
+  private getStatusTextColor(): ResourceStr {
+    if (this.torrentInfo.isDownloading()) {
+      return $r('app.color.accent_color');
+    }
+    if (this.torrentInfo.isPaused()) {
+      return $r('app.color.download_pause_fg');
+    }
+    if (this.torrentInfo.isCompleted()) {
+      return $r('app.color.success_color');
+    }
+    if (this.torrentInfo.state === 'error' || this.torrentInfo.state === 'missingFiles') {
+      return $r('app.color.error_color');
+    }
+    return $r('app.color.text_secondary');
   }
 
   private getPeerMetricText(): string {
@@ -451,6 +480,32 @@ export struct TorrentDetailPage {
     return '正常';
   }
 
+  private getTrackerStatusFillColor(tracker: TorrentTracker): ResourceStr {
+    if (tracker.status === 2 || tracker.status === 3) {
+      return $r('app.color.dashboard_surface_success');
+    }
+    if (tracker.status === 4) {
+      return $r('app.color.dashboard_surface_warning');
+    }
+    if (tracker.status === 0) {
+      return $r('app.color.dashboard_surface_danger');
+    }
+    return $r('app.color.dashboard_surface_info');
+  }
+
+  private getTrackerStatusTextColor(tracker: TorrentTracker): ResourceStr {
+    if (tracker.status === 2 || tracker.status === 3) {
+      return $r('app.color.success_color');
+    }
+    if (tracker.status === 4) {
+      return $r('app.color.warning_color');
+    }
+    if (tracker.status === 0) {
+      return $r('app.color.error_color');
+    }
+    return $r('app.color.accent_color');
+  }
+
   private getFileRenderKey(file: TorrentFile, index: number): string {
     return `${index}_${file.name}_${Math.floor(file.progress * 1000)}_${file.priority}_${file.size}`;
   }
@@ -474,6 +529,20 @@ export struct TorrentDetailPage {
   build() {
     NavDestination() {
       Stack({ alignContent: Alignment.Bottom }) {
+        Column() {
+          Row()
+            .width('100%')
+            .height(420)
+            .linearGradient({
+              angle: 180,
+              colors: [[$r('app.color.page_gradient_top'), 0], [$r('app.color.page_gradient_mid'), 0.5], [$r('app.color.page_background'), 1]]
+            })
+          Blank()
+        }
+        .width('100%')
+        .height('100%')
+        .backgroundColor($r('app.color.page_background'))
+
         Column({ space: 8 }) {
           if (this.actionMessage.length > 0) {
             this.actionBanner()
@@ -512,7 +581,7 @@ export struct TorrentDetailPage {
         .width('100%')
         .height('100%')
         .padding({ left: 20, right: 20, top: 44, bottom: 0 })
-        .backgroundColor($r('app.color.page_background'))
+        .backgroundColor(Color.Transparent)
         .blur(this.pendingDeleteMode.length > 0 || this.pendingFilePriorityIndex >= 0 || this.showSpeedLimitSheet ? 16 : 0)
         .animation({ duration: 220, curve: Curve.EaseOut })
 
@@ -558,10 +627,11 @@ export struct TorrentDetailPage {
     }
     .width('100%')
     .padding({ left: 12, right: 12, top: 10, bottom: 10 })
-    .backgroundColor($r('app.color.card_background'))
+    .backgroundColor($r('app.color.glass_bg_card'))
+    .backdropBlur(20)
     .border({
       width: 1,
-      color: $r('app.color.dashboard_border')
+      color: $r('app.color.glass_border')
     })
     .borderRadius(16)
     .alignItems(VerticalAlign.Center)
@@ -572,19 +642,19 @@ export struct TorrentDetailPage {
     Row() {
       Row({ space: 10 }) {
         Row() {
-          Text('←')
-            .fontSize(16)
-            .fontWeight(FontWeight.Medium)
-            .fontColor($r('app.color.text_primary'))
+          SymbolGlyph($r('sys.symbol.chevron_left'))
+            .fontSize(17)
+            .fontColor([$r('app.color.text_primary')])
         }
         .width(32)
         .height(32)
         .justifyContent(FlexAlign.Center)
         .alignItems(VerticalAlign.Center)
-        .backgroundColor($r('app.color.card_background'))
+        .backgroundColor($r('app.color.glass_bg_card'))
+        .backdropBlur(20)
         .border({
           width: 1,
-          color: $r('app.color.dashboard_border')
+          color: $r('app.color.glass_border')
         })
         .borderRadius(16)
         .onClick(() => {
@@ -599,20 +669,24 @@ export struct TorrentDetailPage {
 
       Blank()
 
-      Row() {
+      Row({ space: 5 }) {
+        SymbolGlyph($r('sys.symbol.arrow_2_circlepath'))
+          .fontSize(13)
+          .fontColor([$r('app.color.accent_color')])
         Text('汇报')
           .fontSize(12)
           .fontWeight(FontWeight.Medium)
           .fontColor($r('app.color.accent_color'))
       }
-      .width(48)
+      .padding({ left: 10, right: 10 })
       .height(32)
       .justifyContent(FlexAlign.Center)
       .alignItems(VerticalAlign.Center)
-      .backgroundColor($r('app.color.card_background'))
+      .backgroundColor($r('app.color.glass_bg_card'))
+      .backdropBlur(20)
       .border({
         width: 1,
-        color: $r('app.color.dashboard_border')
+        color: $r('app.color.glass_border')
       })
       .borderRadius(16)
       .opacity(this.isActionPending ? 0.55 : 1)
@@ -634,18 +708,16 @@ export struct TorrentDetailPage {
           .fontColor($r('app.color.text_primary'))
           .maxLines(1)
           .textOverflow({ overflow: TextOverflow.Ellipsis })
-          .constraintSize({ maxWidth: 240 })
-
-        Blank()
+          .layoutWeight(1)
 
         Row() {
           Text(this.getStatusText())
             .fontSize(11)
             .fontWeight(FontWeight.Medium)
-            .fontColor($r('app.color.accent_color'))
+            .fontColor(this.getStatusTextColor())
         }
         .padding({ left: 10, right: 10, top: 6, bottom: 6 })
-        .backgroundColor($r('app.color.dashboard_surface_info'))
+        .backgroundColor(this.getStatusFillColor())
         .borderRadius(999)
       }
       .width('100%')
@@ -666,7 +738,7 @@ export struct TorrentDetailPage {
           .backgroundColor($r('app.color.dashboard_progress_track'))
           .borderRadius(999)
         Row()
-          .width(this.getProgressWidth(304))
+          .width(this.getProgressPercentText())
           .height(10)
           .linearGradient({
             angle: 90,
@@ -720,19 +792,43 @@ export struct TorrentDetailPage {
     }
     .width('100%')
     .padding(14)
-    .backgroundColor($r('app.color.card_background'))
+    .backgroundColor($r('app.color.glass_bg_card'))
+    .backdropBlur(24)
     .border({
       width: 1,
-      color: $r('app.color.dashboard_border')
+      color: $r('app.color.glass_border')
     })
     .borderRadius(28)
+    .shadow({
+      radius: 20,
+      color: '#0F172A14',
+      offsetX: 0,
+      offsetY: 8
+    })
   }
 
   @Builder
   segmentSection() {
     Row({ space: 8 }) {
       ForEach([0, 1, 2, 3], (index: number) => {
-        Row() {
+        Row({ space: 4 }) {
+          if (index === 0) {
+            SymbolGlyph($r('sys.symbol.info_circle'))
+              .fontSize(13)
+              .fontColor([this.selectedTab === index ? $r('app.color.tab_active_fg') : $r('app.color.tab_inactive_fg')])
+          } else if (index === 1) {
+            SymbolGlyph($r('sys.symbol.folder'))
+              .fontSize(13)
+              .fontColor([this.selectedTab === index ? $r('app.color.tab_active_fg') : $r('app.color.tab_inactive_fg')])
+          } else if (index === 2) {
+            SymbolGlyph($r('sys.symbol.person_2'))
+              .fontSize(13)
+              .fontColor([this.selectedTab === index ? $r('app.color.tab_active_fg') : $r('app.color.tab_inactive_fg')])
+          } else {
+            SymbolGlyph($r('sys.symbol.link'))
+              .fontSize(13)
+              .fontColor([this.selectedTab === index ? $r('app.color.tab_active_fg') : $r('app.color.tab_inactive_fg')])
+          }
           Text(this.getTabTitle(index))
             .fontSize(11)
             .fontWeight(FontWeight.Medium)
@@ -741,10 +837,12 @@ export struct TorrentDetailPage {
         .layoutWeight(1)
         .padding({ left: 0, right: 0, top: 8, bottom: 8 })
         .justifyContent(FlexAlign.Center)
-        .backgroundColor(this.selectedTab === index ? $r('app.color.tab_active_bg') : $r('app.color.card_background'))
+        .alignItems(VerticalAlign.Center)
+        .backgroundColor(this.selectedTab === index ? $r('app.color.tab_active_bg') : $r('app.color.glass_bg_card'))
+        .backdropBlur(this.selectedTab === index ? 0 : 20)
         .border(this.selectedTab === index ? { width: 0 } : {
           width: 1,
-          color: $r('app.color.dashboard_border')
+          color: $r('app.color.glass_border')
         })
         .borderRadius(999)
         .onClick(() => {
@@ -759,11 +857,17 @@ export struct TorrentDetailPage {
   overviewSection() {
     Column({ space: 10 }) {
       Column({ space: 10 }) {
-        Text('传输概览')
-          .fontSize(14)
-          .fontWeight(FontWeight.Bold)
-          .fontColor($r('app.color.text_primary'))
-          .width('100%')
+        Row({ space: 6 }) {
+          SymbolGlyph($r('sys.symbol.arrow_2_circlepath'))
+            .fontSize(14)
+            .fontColor([$r('app.color.accent_color')])
+          Text('传输概览')
+            .fontSize(14)
+            .fontWeight(FontWeight.Bold)
+            .fontColor($r('app.color.text_primary'))
+        }
+        .width('100%')
+        .alignItems(VerticalAlign.Center)
 
         Row({ space: 8 }) {
           Column({ space: 4 }) {
@@ -824,19 +928,26 @@ export struct TorrentDetailPage {
       }
       .width('100%')
       .padding(14)
-      .backgroundColor($r('app.color.card_background'))
+      .backgroundColor($r('app.color.glass_bg_card'))
+      .backdropBlur(20)
       .border({
         width: 1,
-        color: $r('app.color.dashboard_border')
+        color: $r('app.color.glass_border')
       })
       .borderRadius(24)
 
       Column({ space: 8 }) {
-        Text('存储与来源')
-          .fontSize(14)
-          .fontWeight(FontWeight.Bold)
-          .fontColor($r('app.color.text_primary'))
-          .width('100%')
+        Row({ space: 6 }) {
+          SymbolGlyph($r('sys.symbol.externaldrive'))
+            .fontSize(14)
+            .fontColor([$r('app.color.accent_color')])
+          Text('存储与来源')
+            .fontSize(14)
+            .fontWeight(FontWeight.Bold)
+            .fontColor($r('app.color.text_primary'))
+        }
+        .width('100%')
+        .alignItems(VerticalAlign.Center)
 
         Text(`保存路径  ${this.getTorrentSavePath().length > 0 ? this.getTorrentSavePath() : '--'}`)
           .fontSize(12)
@@ -856,19 +967,26 @@ export struct TorrentDetailPage {
       }
       .width('100%')
       .padding(14)
-      .backgroundColor($r('app.color.card_background'))
+      .backgroundColor($r('app.color.glass_bg_card'))
+      .backdropBlur(20)
       .border({
         width: 1,
-        color: $r('app.color.dashboard_border')
+        color: $r('app.color.glass_border')
       })
       .borderRadius(24)
 
       Row() {
         Column({ space: 2 }) {
-          Text('限速设置')
-            .fontSize(13)
-            .fontWeight(FontWeight.Bold)
-            .fontColor($r('app.color.text_primary'))
+          Row({ space: 6 }) {
+            SymbolGlyph($r('sys.symbol.slider_horizontal_2'))
+              .fontSize(13)
+              .fontColor([$r('app.color.accent_color')])
+            Text('限速设置')
+              .fontSize(13)
+              .fontWeight(FontWeight.Bold)
+              .fontColor($r('app.color.text_primary'))
+          }
+          .alignItems(VerticalAlign.Center)
           Text(this.getSpeedLimitSummaryText())
             .fontSize(11)
             .fontColor($r('app.color.text_secondary'))
@@ -876,20 +994,26 @@ export struct TorrentDetailPage {
         .alignItems(HorizontalAlign.Start)
         .layoutWeight(1)
 
-        Text('修改')
-          .fontSize(12)
-          .fontWeight(FontWeight.Medium)
-          .fontColor($r('app.color.accent_color'))
+        Row({ space: 4 }) {
+          SymbolGlyph($r('sys.symbol.arrow_up_right'))
+            .fontSize(12)
+            .fontColor([$r('app.color.accent_color')])
+          Text('修改')
+            .fontSize(12)
+            .fontWeight(FontWeight.Medium)
+            .fontColor($r('app.color.accent_color'))
+        }
           .padding({ left: 12, right: 12, top: 6, bottom: 6 })
           .backgroundColor($r('app.color.dashboard_surface_info'))
           .borderRadius(999)
       }
       .width('100%')
       .padding({ left: 14, right: 14, top: 12, bottom: 12 })
-      .backgroundColor($r('app.color.card_background'))
+      .backgroundColor($r('app.color.glass_bg_card'))
+      .backdropBlur(20)
       .border({
         width: 1,
-        color: $r('app.color.dashboard_border')
+        color: $r('app.color.glass_border')
       })
       .borderRadius(20)
       .alignItems(VerticalAlign.Center)
@@ -908,13 +1032,20 @@ export struct TorrentDetailPage {
       } else {
         ForEach(this.files, (file: TorrentFile, index?: number) => {
           Column({ space: 8 }) {
-            Text(file.name)
-              .fontSize(13)
-              .fontWeight(FontWeight.Medium)
-              .fontColor($r('app.color.text_primary'))
-              .width('100%')
-              .maxLines(2)
-              .textOverflow({ overflow: TextOverflow.Ellipsis })
+            Row({ space: 8 }) {
+              SymbolGlyph($r('sys.symbol.doc'))
+                .fontSize(15)
+                .fontColor([$r('app.color.accent_color')])
+              Text(file.name)
+                .fontSize(13)
+                .fontWeight(FontWeight.Medium)
+                .fontColor($r('app.color.text_primary'))
+                .layoutWeight(1)
+                .maxLines(2)
+                .textOverflow({ overflow: TextOverflow.Ellipsis })
+            }
+            .width('100%')
+            .alignItems(VerticalAlign.Top)
 
             Stack({ alignContent: Alignment.Start }) {
               Row()
@@ -938,25 +1069,31 @@ export struct TorrentDetailPage {
                 .fontSize(11)
                 .fontColor($r('app.color.text_secondary'))
               Blank()
-              Text(this.getFilePriorityLabel(file.priority))
-                .fontSize(11)
-                .fontWeight(FontWeight.Medium)
-                .fontColor($r('app.color.accent_color'))
-                .padding({ left: 8, right: 8, top: 4, bottom: 4 })
-                .backgroundColor($r('app.color.dashboard_surface_info'))
-                .borderRadius(999)
-                .onClick(() => {
-                  this.pendingFilePriorityIndex = file.index;
-                })
+              Row({ space: 4 }) {
+                SymbolGlyph($r('sys.symbol.flag'))
+                  .fontSize(11)
+                  .fontColor([$r('app.color.accent_color')])
+                Text(this.getFilePriorityLabel(file.priority))
+                  .fontSize(11)
+                  .fontWeight(FontWeight.Medium)
+                  .fontColor($r('app.color.accent_color'))
+              }
+              .padding({ left: 8, right: 8, top: 4, bottom: 4 })
+              .backgroundColor($r('app.color.dashboard_surface_info'))
+              .borderRadius(999)
+              .alignItems(VerticalAlign.Center)
+              .onClick(() => {
+                this.pendingFilePriorityIndex = file.index;
+              })
             }
             .width('100%')
           }
           .width('100%')
           .padding(14)
-          .backgroundColor($r('app.color.card_background'))
+          .backgroundColor($r('app.color.glass_bg_elevated'))
           .border({
             width: 1,
-            color: $r('app.color.dashboard_border')
+            color: $r('app.color.glass_border')
           })
           .borderRadius(20)
         }, (file: TorrentFile, index?: number) => this.getFileRenderKey(file, index ?? 0))
@@ -974,10 +1111,15 @@ export struct TorrentDetailPage {
         ForEach(this.peers, (peer: TorrentPeer, index?: number) => {
           Column({ space: 8 }) {
             Row() {
-              Text(`${peer.ip}:${peer.port}`)
-                .fontSize(13)
-                .fontWeight(FontWeight.Medium)
-                .fontColor($r('app.color.text_primary'))
+              Row({ space: 8 }) {
+                SymbolGlyph($r('sys.symbol.person'))
+                  .fontSize(14)
+                  .fontColor([$r('app.color.accent_color')])
+                Text(`${peer.ip}:${peer.port}`)
+                  .fontSize(13)
+                  .fontWeight(FontWeight.Medium)
+                  .fontColor($r('app.color.text_primary'))
+              }
               Blank()
               Text(peer.client)
                 .fontSize(11)
@@ -1007,10 +1149,10 @@ export struct TorrentDetailPage {
           }
           .width('100%')
           .padding(14)
-          .backgroundColor($r('app.color.card_background'))
+          .backgroundColor($r('app.color.glass_bg_elevated'))
           .border({
             width: 1,
-            color: $r('app.color.dashboard_border')
+            color: $r('app.color.glass_border')
           })
           .borderRadius(20)
         }, (peer: TorrentPeer, index?: number) => this.getPeerRenderKey(peer, index ?? 0))
@@ -1027,18 +1169,29 @@ export struct TorrentDetailPage {
       } else {
         ForEach(this.trackers, (tracker: TorrentTracker, index?: number) => {
           Column({ space: 8 }) {
-            Text(tracker.url)
-              .fontSize(13)
-              .fontWeight(FontWeight.Medium)
-              .fontColor($r('app.color.text_primary'))
-              .width('100%')
-              .maxLines(2)
-              .textOverflow({ overflow: TextOverflow.Ellipsis })
+            Row({ space: 8 }) {
+              SymbolGlyph($r('sys.symbol.link'))
+                .fontSize(14)
+                .fontColor([$r('app.color.accent_color')])
+              Text(tracker.url)
+                .fontSize(13)
+                .fontWeight(FontWeight.Medium)
+                .fontColor($r('app.color.text_primary'))
+                .layoutWeight(1)
+                .maxLines(2)
+                .textOverflow({ overflow: TextOverflow.Ellipsis })
+            }
+            .width('100%')
+            .alignItems(VerticalAlign.Top)
 
             Row({ space: 12 }) {
-              Text(`状态 ${tracker.getStatusLabel()}`)
+              Text(tracker.getStatusLabel())
                 .fontSize(11)
-                .fontColor($r('app.color.text_secondary'))
+                .fontWeight(FontWeight.Medium)
+                .fontColor(this.getTrackerStatusTextColor(tracker))
+                .padding({ left: 8, right: 8, top: 4, bottom: 4 })
+                .backgroundColor(this.getTrackerStatusFillColor(tracker))
+                .borderRadius(999)
               Text(`种子 ${tracker.num_seeds}`)
                 .fontSize(11)
                 .fontColor($r('app.color.text_secondary'))
@@ -1059,10 +1212,10 @@ export struct TorrentDetailPage {
           }
           .width('100%')
           .padding(14)
-          .backgroundColor($r('app.color.card_background'))
+          .backgroundColor($r('app.color.glass_bg_elevated'))
           .border({
             width: 1,
-            color: $r('app.color.dashboard_border')
+            color: $r('app.color.glass_border')
           })
           .borderRadius(20)
         }, (tracker: TorrentTracker, index?: number) => this.getTrackerRenderKey(tracker, index ?? 0))
@@ -1084,10 +1237,10 @@ export struct TorrentDetailPage {
     }
     .width('100%')
     .padding(14)
-    .backgroundColor($r('app.color.card_background'))
+    .backgroundColor($r('app.color.glass_bg_elevated'))
     .border({
       width: 1,
-      color: $r('app.color.dashboard_border')
+      color: $r('app.color.glass_border')
     })
     .borderRadius(20)
     .alignItems(HorizontalAlign.Start)
@@ -1169,7 +1322,7 @@ export struct TorrentDetailPage {
 
   @Builder
   filePrioritySheet() {
-    Stack({ alignContent: Alignment.Center }) {
+    Stack({ alignContent: Alignment.Bottom }) {
       Row()
         .width('100%')
         .height('100%')
@@ -1179,6 +1332,13 @@ export struct TorrentDetailPage {
         })
 
       Column({ space: 12 }) {
+        Row()
+          .width(46)
+          .height(5)
+          .backgroundColor($r('app.color.download_sheet_handle'))
+          .borderRadius(999)
+          .alignSelf(ItemAlign.Center)
+
         Column({ space: 6 }) {
           Text('文件优先级')
             .fontSize(18)
@@ -1234,10 +1394,10 @@ export struct TorrentDetailPage {
         }
         .width('100%')
       }
-      .width(290)
-      .padding(18)
+      .width('100%')
+      .padding({ left: 20, right: 20, top: 14, bottom: 40 })
       .backgroundColor($r('app.color.card_background'))
-      .borderRadius(24)
+      .borderRadius({ topLeft: 28, topRight: 28, bottomLeft: 0, bottomRight: 0 })
       .alignItems(HorizontalAlign.Center)
     }
     .width('100%')
@@ -1246,7 +1406,7 @@ export struct TorrentDetailPage {
 
   @Builder
   speedLimitSheet() {
-    Stack({ alignContent: Alignment.Center }) {
+    Stack({ alignContent: Alignment.Bottom }) {
       Row()
         .width('100%')
         .height('100%')
@@ -1258,6 +1418,13 @@ export struct TorrentDetailPage {
         })
 
       Column({ space: 14 }) {
+        Row()
+          .width(46)
+          .height(5)
+          .backgroundColor($r('app.color.download_sheet_handle'))
+          .borderRadius(999)
+          .alignSelf(ItemAlign.Center)
+
         Column({ space: 6 }) {
           Text('限速设置')
             .fontSize(18)
@@ -1337,10 +1504,10 @@ export struct TorrentDetailPage {
         }
         .width('100%')
       }
-      .width(290)
-      .padding(18)
+      .width('100%')
+      .padding({ left: 20, right: 20, top: 14, bottom: 40 })
       .backgroundColor($r('app.color.card_background'))
-      .borderRadius(24)
+      .borderRadius({ topLeft: 28, topRight: 28, bottomLeft: 0, bottomRight: 0 })
       .alignItems(HorizontalAlign.Center)
     }
     .width('100%')
@@ -1351,7 +1518,10 @@ export struct TorrentDetailPage {
   bottomActionBar() {
     Row() {
       Row({ space: 8 }) {
-        Row() {
+        Row({ space: 8 }) {
+          SymbolGlyph(this.torrentInfo.isPaused() ? $r('sys.symbol.play_fill') : $r('sys.symbol.pause'))
+            .fontSize(15)
+            .fontColor([$r('app.color.dashboard_primary_action_fg')])
           Text(this.getPrimaryActionText())
             .fontSize(14)
             .fontWeight(FontWeight.Medium)
@@ -1368,7 +1538,10 @@ export struct TorrentDetailPage {
           this.handlePrimaryAction();
         })
 
-        Row() {
+        Row({ space: 8 }) {
+          SymbolGlyph($r('sys.symbol.trash'))
+            .fontSize(15)
+            .fontColor([$r('app.color.error_color')])
           Text('删除任务')
             .fontSize(14)
             .fontWeight(FontWeight.Medium)
@@ -1390,8 +1563,14 @@ export struct TorrentDetailPage {
         })
       }
       .width('100%')
-      .padding(4)
-      .backgroundColor('#00000000')
+      .padding(6)
+      .backgroundColor($r('app.color.glass_bg_card'))
+      .backdropBlur(24)
+      .border({
+        width: 1,
+        color: $r('app.color.glass_border')
+      })
+      .borderRadius(999)
     }
     .width('100%')
     .padding({ top: 10, right: 21, bottom: 22, left: 21 })
