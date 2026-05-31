@@ -82,10 +82,10 @@ export struct TorrentListItem {
     }
     .width('100%')
     .padding({ left: 14, right: 14, top: 12, bottom: 12 })
-    .backgroundColor(this.isSelected ? $r('app.color.download_selected_bg') : $r('app.color.glass_bg_elevated'))
+    .backgroundColor(this.isSelected ? $r('app.color.download_selected_bg') : $r('app.color.card_background'))
     .border({
       width: 1,
-      color: this.isSelected ? $r('app.color.download_selected_border') : $r('app.color.glass_border')
+      color: this.isSelected ? $r('app.color.download_selected_border') : $r('app.color.dashboard_border')
     })
     .borderRadius(20)
     .animation({ duration: 220, curve: Curve.EaseOut })

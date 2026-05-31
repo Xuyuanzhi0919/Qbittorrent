@@ -359,9 +359,8 @@ export struct SettingsPage {
     }
     .width('100%')
     .padding(20)
-    .backgroundColor($r('app.color.glass_bg_card'))
-    .backdropBlur(24)
-    .border({ width: 1, color: $r('app.color.glass_border') })
+    .backgroundColor($r('app.color.card_background'))
+    .border({ width: 1, color: $r('app.color.dashboard_border') })
     .borderRadius(24)
     .shadow({
       radius: 20,
@@ -504,9 +503,8 @@ export struct SettingsPage {
       }
     }
     .width('100%')
-    .backgroundColor($r('app.color.glass_bg_card'))
-    .backdropBlur(22)
-    .border({ width: 1, color: $r('app.color.glass_border') })
+    .backgroundColor($r('app.color.card_background'))
+    .border({ width: 1, color: $r('app.color.dashboard_border') })
     .borderRadius(24)
     .clip(true)
   }
