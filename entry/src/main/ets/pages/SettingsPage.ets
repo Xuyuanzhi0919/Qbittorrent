@@ -233,6 +233,9 @@ export struct SettingsPage {
     .width('100%')
     .height('100%')
     .backgroundColor($r('app.color.page_background'))
+    .backgroundImage($r('app.media.background'), ImageRepeat.NoRepeat)
+    .backgroundImageSize(ImageSize.Cover)
+    .backgroundImagePosition(Alignment.Top)
   }
 
   @Builder
@@ -253,10 +256,6 @@ export struct SettingsPage {
     }
     .width('100%')
     .height('100%')
-    .backgroundColor($r('app.color.page_background'))
-    .backgroundImage($r('app.media.background'), ImageRepeat.NoRepeat)
-    .backgroundImageSize(ImageSize.Cover)
-    .backgroundImagePosition(Alignment.Top)
     .hitTestBehavior(HitTestMode.Transparent)
   }
 
