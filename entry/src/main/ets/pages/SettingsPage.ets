@@ -222,7 +222,10 @@ export struct SettingsPage {
           Blank().height(this.rootTabBarReserveHeight + 14)
         }
         .width('100%')
+        .height('100%')
         .padding({ left: 20, right: 20, top: 62 })
+        .alignItems(HorizontalAlign.Start)
+        .justifyContent(FlexAlign.Start)
       }
       .scrollBar(BarState.Off)
       .edgeEffect(EdgeEffect.Spring)
