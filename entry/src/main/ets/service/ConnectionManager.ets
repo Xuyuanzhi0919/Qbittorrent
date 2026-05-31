@@ -88,11 +88,6 @@ export class ConnectionManager {
     hilog.info(AppConstants.LOG_DOMAIN, AppConstants.LOG_TAG, 'Disconnected (config preserved)');
   }
 
-  markSessionExpired(): void {
-    this._isConnected = false;
-    hilog.warn(AppConstants.LOG_DOMAIN, AppConstants.LOG_TAG, 'Session expired (config preserved)');
-  }
-
   async disconnectAndClear(): Promise<void> {
     await this.api.logout();
     this._isConnected = false;

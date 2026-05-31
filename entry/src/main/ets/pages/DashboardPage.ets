@@ -18,12 +18,28 @@ struct WaveCanvas {
   private offset2: number = 0;
   private canvasW: number = 0;
   private canvasH: number = 0;
+  private readonly frameInterval: number = 33;
 
   aboutToDisappear(): void {
-    if (this.timer !== -1) {
-      clearInterval(this.timer);
-      this.timer = -1;
+    this.stop();
+  }
+
+  private start(): void {
+    if (this.timer !== -1 || this.canvasW <= 0) {
+      return;
     }
+    this.draw();
+    this.timer = setInterval(() => {
+      this.draw();
+    }, this.frameInterval);
+  }
+
+  private stop(): void {
+    if (this.timer === -1) {
+      return;
+    }
+    clearInterval(this.timer);
+    this.timer = -1;
   }
 
   private draw(): void {
@@ -64,20 +80,12 @@ struct WaveCanvas {
       .width('100%')
       .height(52)
       .onReady(() => {
-        if (this.timer === -1 && this.canvasW > 0) {
-          this.timer = setInterval(() => {
-            this.draw();
-          }, 16);
-        }
+        this.start();
       })
       .onAreaChange((_old: Area, newV: Area) => {
         this.canvasW = newV.width as number;
         this.canvasH = newV.height as number;
-        if (this.timer === -1) {
-          this.timer = setInterval(() => {
-            this.draw();
-          }, 16);
-        }
+        this.start();
       })
   }
 }
@@ -87,6 +95,7 @@ export struct DashboardPage {
   @StorageLink('guestMode') guestMode: boolean = false;
   @StorageLink('rootTabBarReserveHeight') rootTabBarReserveHeight: number = 0;
   @State isLoading: boolean = false;
+  @State isPullRefreshing: boolean = false;
   @State dlSpeed: number = 0;
   @State ulSpeed: number = 0;
   @State dlData: number = 0;
@@ -358,9 +367,14 @@ export struct DashboardPage {
     if (this.guestMode) {
       this.loadGuestDemoData();
       this.isLoading = false;
+      this.isPullRefreshing = false;
       return;
     }
-    if (this.isRefreshing || !this.service) {
+    if (!this.service) {
+      this.isPullRefreshing = false;
+      return;
+    }
+    if (this.isRefreshing) {
       this.hasQueuedRefresh = true;
       this.queuedRefreshWithLoading = this.queuedRefreshWithLoading || showLoading;
       return;
@@ -422,6 +436,7 @@ export struct DashboardPage {
       this.hasQueuedRefresh = false;
       this.queuedRefreshWithLoading = false;
       this.isLoading = false;
+      this.isPullRefreshing = false;
       if (shouldRefreshAgain) {
         this.isRefreshing = false;
         this.refreshData(nextShowLoading);
@@ -504,18 +519,18 @@ export struct DashboardPage {
 
   private getConnectionText(): string {
     if (this.guestMode) {
-      return '示例体验';
+      return '演示';
     }
     if (this.connectionStatus === 'connected') {
-      return '公网连接';
+      return '公网';
     }
     if (this.connectionStatus === 'firewalled') {
-      return '内网连接';
+      return '内网';
     }
     if (this.connectionStatus === 'disconnected') {
-      return '连接断开';
+      return '离线';
     }
-    return '连接检测中';
+    return '检测中';
   }
 
   private getConnectionColor(): ResourceStr {
@@ -571,6 +586,13 @@ export struct DashboardPage {
       return 0;
     }
     return Math.max(36, Math.floor((maxWidth * percent) / 100));
+  }
+
+  private getPercentWidth(percent: number): string {
+    if (percent <= 0) {
+      return '0%';
+    }
+    return `${Math.min(100, Math.max(4, percent))}%`;
   }
 
   private formatDashboardSpeed(bytesPerSecond: number): string {
@@ -728,12 +750,12 @@ export struct DashboardPage {
     return '下载任务';
   }
 
-  private getTaskProgressWidth(torrent: TorrentInfo, maxWidth: number): number {
+  private getTaskProgressWidth(torrent: TorrentInfo): string {
     if (torrent.progress <= 0) {
-      return 0;
+      return '0%';
     }
-    const width = Math.floor(maxWidth * torrent.progress);
-    return Math.min(maxWidth, Math.max(24, width));
+    const percent: number = Math.min(100, Math.max(2, Math.floor(torrent.progress * 100)));
+    return `${percent}%`;
   }
 
   private getTaskRenderKey(torrent: TorrentInfo): string {
@@ -802,7 +824,7 @@ export struct DashboardPage {
       .height('100%')
       .backgroundColor($r('app.color.page_background'))
 
-      Refresh({ refreshing: $$this.isLoading }) {
+      Refresh({ refreshing: $$this.isPullRefreshing }) {
         Scroll() {
           Column({ space: 12 }) {
             if (this.actionMessage.length > 0) {
@@ -827,7 +849,8 @@ export struct DashboardPage {
         .animation({ duration: 220, curve: Curve.EaseOut })
       }
       .onRefreshing(() => {
-        this.refreshData(true);
+        this.isPullRefreshing = true;
+        this.refreshData(false);
       })
 
       if (this.pendingDeleteHash.length > 0) {
@@ -933,11 +956,13 @@ export struct DashboardPage {
   @Builder
   headerSection() {
     Row() {
-      Text('仪表盘')
-        .fontSize(28)
-        .fontWeight(FontWeight.Bold)
-        .letterSpacing(-0.5)
-        .fontColor($r('app.color.text_primary'))
+      Column({ space: 4 }) {
+        Text('仪表盘')
+          .fontSize(27)
+          .fontWeight(FontWeight.Bold)
+          .fontColor($r('app.color.text_primary'))
+      }
+      .alignItems(HorizontalAlign.Start)
 
       Blank()
 
@@ -951,11 +976,12 @@ export struct DashboardPage {
           .fontWeight(FontWeight.Medium)
           .fontColor($r('app.color.text_primary'))
       }
-      .padding({ left: 12, right: 12, top: 8, bottom: 8 })
-      .backgroundColor($r('app.color.glass_bg_card'))
+      .padding({ left: 12, right: 12, top: 9, bottom: 9 })
+      .backgroundColor($r('app.color.card_background'))
       .backdropBlur(24)
-      .border({ width: 1, color: $r('app.color.glass_border') })
+      .border({ width: 1, color: $r('app.color.dashboard_border_soft') })
       .borderRadius(999)
+      .shadow({ radius: 10, color: '#0D0F172A', offsetX: 0, offsetY: 4 })
     }
     .width('100%')
     .alignItems(VerticalAlign.Center)
@@ -985,7 +1011,7 @@ export struct DashboardPage {
         color: $r('app.color.glass_border')
       })
       .borderRadius(999)
-      .shadow({ radius: 18, color: '#2563EB24', offsetX: 0, offsetY: 6 })
+      .shadow({ radius: 18, color: '#242563EB', offsetX: 0, offsetY: 6 })
       .position({ x: this.fabX < 0 ? this.clampFabX(this.pageWidth - this.fabWidth - 20) : this.fabX,
         y: this.fabY < 0 ? this.clampFabY(this.pageHeight - this.rootTabBarReserveHeight - this.fabHeight - 16) : this.fabY })
       .gesture(
@@ -1024,7 +1050,7 @@ export struct DashboardPage {
   @Builder
   heroSection() {
     Column() {
-      Column({ space: 16 }) {
+      Column({ space: 18 }) {
         if (this.isLoading) {
           Column({ space: 14 }) {
             Row() {
@@ -1069,41 +1095,65 @@ export struct DashboardPage {
           .width('100%')
         } else {
           Row() {
-            Column({ space: 4 }) {
-              Text('实时传输速率')
-                .fontSize(12)
-                .fontWeight(FontWeight.Medium)
-                .fontColor($r('app.color.text_secondary'))
+            Column({ space: 6 }) {
+              Row({ space: 8 }) {
+                Row()
+                  .width(4)
+                  .height(16)
+                  .backgroundColor('#5EEAD4')
+                  .borderRadius(999)
+                Text('总速率')
+                  .fontSize(12)
+                  .fontWeight(FontWeight.Medium)
+                  .fontColor('#B9D8F4')
+              }
+
               Text(this.formatDashboardSpeed(this.getTotalSpeed()))
-                .fontSize(36)
+                .fontSize(40)
                 .fontWeight(FontWeight.Bold)
-                .letterSpacing(-0.8)
-                .fontColor($r('app.color.text_primary'))
+                .fontColor('#FFFFFF')
+                .maxLines(1)
+                .textOverflow({ overflow: TextOverflow.Ellipsis })
+
+              Text(`累计 ${FormatUtils.formatFileSize(this.totalDownloadedBytes)}`)
+                .fontSize(11)
+                .fontWeight(FontWeight.Medium)
+                .fontColor('#A9C4DE')
                 .maxLines(1)
                 .textOverflow({ overflow: TextOverflow.Ellipsis })
             }
             .alignItems(HorizontalAlign.Start)
             .layoutWeight(1)
 
-            Column({ space: 4 }) {
+            Column({ space: 6 }) {
               Text(this.getStatusSummary())
                 .fontSize(13)
                 .fontWeight(FontWeight.Bold)
-                .fontColor(this.getConnectionColor())
-              Text(`${this.dhtNodes} 节点`)
-                .fontSize(11)
-                .fontWeight(FontWeight.Normal)
-                .fontColor($r('app.color.text_secondary'))
+                .fontColor('#FFFFFF')
             }
+            .padding({ left: 12, right: 12, top: 8, bottom: 8 })
+            .backgroundColor('#1FFFFFFF')
+            .border({ width: 1, color: '#2EFFFFFF' })
+            .borderRadius(18)
             .alignItems(HorizontalAlign.End)
           }
           .width('100%')
-          .alignItems(VerticalAlign.Center)
+          .alignItems(VerticalAlign.Top)
+
+          Column({ space: 10 }) {
+            this.transferRail('下载', this.getDownloadRailText(), this.getDownloadPercent(), '#5EEAD4')
+            this.transferRail('上传', this.getUploadRailText(), this.getUploadPercent(), '#FDBA74')
+          }
+          .width('100%')
+          .padding({ left: 12, right: 12, top: 12, bottom: 12 })
+          .backgroundColor('#12FFFFFF')
+          .border({ width: 1, color: '#1FFFFFFF' })
+          .borderRadius(18)
 
           Row({ space: 8 }) {
-            this.averageSpeedChip()
-            this.peakSpeedChip()
-            this.etaChip()
+            this.heroMetricChip('平均', this.getAverageSpeedText())
+            this.heroMetricChip('峰值', this.getPeakSpeedText())
+            this.heroMetricChip('剩余', this.getEtaText())
           }
           .width('100%')
         }
@@ -1116,241 +1166,54 @@ export struct DashboardPage {
       }
     }
     .width('100%')
-    .backgroundColor($r('app.color.glass_bg_card'))
-    .backdropBlur(28)
-    .border({ width: 1, color: $r('app.color.glass_border') })
+    .linearGradient({
+      angle: 135,
+      colors: [
+        ['#102A43', 0],
+        ['#125C7A', 0.58],
+        ['#0F766E', 1]
+      ]
+    })
+    .border({ width: 1, color: '#2EFFFFFF' })
     .borderRadius(24)
     .clip(true)
     .shadow({
-      radius: 20,
-      color: '#0F172A14',
+      radius: 24,
+      color: '#240F172A',
       offsetX: 0,
-      offsetY: 8
+      offsetY: 10
     })
   }
 
   @Builder
-  averageSpeedChip() {
-    Column({ space: 4 }) {
-      Text('平均速度')
-        .fontSize(10)
-        .fontWeight(FontWeight.Medium)
-        .fontColor($r('app.color.text_secondary'))
-      Text(this.getAverageSpeedText())
-        .fontSize(14)
-        .fontWeight(FontWeight.Bold)
-        .fontColor($r('app.color.text_primary'))
-        .maxLines(1)
-        .textOverflow({ overflow: TextOverflow.Ellipsis })
-        .constraintSize({ minWidth: 52 })
-    }
-    .layoutWeight(1)
-    .padding({ left: 10, right: 10, top: 12, bottom: 12 })
-    .backgroundColor($r('app.color.glass_bg_chip'))
-    .borderRadius(18)
-    .alignItems(HorizontalAlign.Start)
-  }
-
-  @Builder
-  peakSpeedChip() {
-    Column({ space: 4 }) {
-      Text('峰值速度')
-        .fontSize(10)
-        .fontWeight(FontWeight.Medium)
-        .fontColor($r('app.color.text_secondary'))
-      Text(this.getPeakSpeedText())
-        .fontSize(14)
-        .fontWeight(FontWeight.Bold)
-        .fontColor($r('app.color.text_primary'))
-        .maxLines(1)
-        .textOverflow({ overflow: TextOverflow.Ellipsis })
-        .constraintSize({ minWidth: 52 })
-    }
-    .layoutWeight(1)
-    .padding({ left: 10, right: 10, top: 12, bottom: 12 })
-    .backgroundColor($r('app.color.glass_bg_chip'))
-    .borderRadius(18)
-    .alignItems(HorizontalAlign.Start)
-  }
-
-  @Builder
-  etaChip() {
-    Column({ space: 4 }) {
-      Text('剩余时间')
-        .fontSize(10)
-        .fontWeight(FontWeight.Medium)
-        .fontColor($r('app.color.text_secondary'))
-      Text(this.getEtaText())
-        .fontSize(14)
-        .fontWeight(FontWeight.Bold)
-        .fontColor($r('app.color.text_primary'))
-        .maxLines(1)
-        .textOverflow({ overflow: TextOverflow.Ellipsis })
-        .constraintSize({ minWidth: 52 })
-    }
-    .layoutWeight(1)
-    .padding({ left: 10, right: 10, top: 12, bottom: 12 })
-    .backgroundColor($r('app.color.glass_bg_chip'))
-    .borderRadius(18)
-    .alignItems(HorizontalAlign.Start)
-  }
-
-  @Builder
-  bentoGrid() {
-    Column({ space: 10 }) {
-      // Top row: download speed + upload speed
-      Row({ space: 10 }) {
-        Column({ space: 10 }) {
-          Row({ space: 6 }) {
-            Circle()
-              .width(7)
-              .height(7)
-              .fill($r('app.color.success_color'))
-            Text('下载速度')
-              .fontSize(11)
-              .fontWeight(FontWeight.Medium)
-              .fontColor($r('app.color.text_secondary'))
-          }
-          if (this.isLoading) {
-            Row()
-              .width(100)
-              .height(32)
-              .backgroundColor($r('app.color.dashboard_border'))
-              .borderRadius(10)
-          } else {
-            Text(this.formatDashboardSpeed(this.dlSpeed))
-              .minFontSize(14)
-              .maxFontSize(26)
-              .fontWeight(FontWeight.Bold)
-              .letterSpacing(-0.5)
-              .fontColor($r('app.color.text_primary'))
-              .maxLines(1)
-              .textOverflow({ overflow: TextOverflow.Ellipsis })
-          }
-          Text(this.dlRateLimit > 0 ? `限速 ${this.formatDashboardSpeed(this.dlRateLimit)}` : '不限速')
-            .fontSize(11)
-            .fontWeight(FontWeight.Normal)
-            .fontColor($r('app.color.tab_inactive_fg'))
-        }
-        .layoutWeight(1)
-        .height(108)
-        .padding(16)
-        .alignItems(HorizontalAlign.Start)
-        .justifyContent(FlexAlign.SpaceBetween)
-        .backgroundColor($r('app.color.glass_bg_card'))
-        .backdropBlur(24)
-        .border({ width: 1, color: $r('app.color.glass_border') })
-        .borderRadius(20)
-
-        Column({ space: 10 }) {
-          Row({ space: 6 }) {
-            Circle()
-              .width(7)
-              .height(7)
-              .fill($r('app.color.warning_color'))
-            Text('上传速度')
-              .fontSize(11)
-              .fontWeight(FontWeight.Medium)
-              .fontColor($r('app.color.text_secondary'))
-          }
-          if (this.isLoading) {
-            Row()
-              .width(80)
-              .height(32)
-              .backgroundColor($r('app.color.dashboard_border'))
-              .borderRadius(10)
-          } else {
-            Text(this.formatDashboardSpeed(this.ulSpeed))
-              .minFontSize(14)
-              .maxFontSize(26)
-              .fontWeight(FontWeight.Bold)
-              .letterSpacing(-0.5)
-              .fontColor($r('app.color.text_primary'))
-              .maxLines(1)
-              .textOverflow({ overflow: TextOverflow.Ellipsis })
-          }
-          Text(this.ulRateLimit > 0 ? `限速 ${this.formatDashboardSpeed(this.ulRateLimit)}` : '不限速')
-            .fontSize(11)
-            .fontWeight(FontWeight.Normal)
-            .fontColor($r('app.color.tab_inactive_fg'))
-        }
-        .layoutWeight(1)
-        .height(108)
-        .padding(16)
-        .alignItems(HorizontalAlign.Start)
-        .justifyContent(FlexAlign.SpaceBetween)
-        .backgroundColor($r('app.color.glass_bg_card'))
-        .backdropBlur(24)
-        .border({ width: 1, color: $r('app.color.glass_border') })
-        .borderRadius(20)
+  transferRail(label: string, value: string, percent: number, fillColor: string) {
+    Column({ space: 6 }) {
+      Row() {
+        Text(label)
+          .fontSize(11)
+          .fontWeight(FontWeight.Medium)
+          .fontColor('#B9D8F4')
+        Blank()
+        Text(value)
+          .fontSize(11)
+          .fontWeight(FontWeight.Bold)
+          .fontColor('#FFFFFF')
+          .maxLines(1)
+          .textOverflow({ overflow: TextOverflow.Ellipsis })
       }
       .width('100%')
 
-      // Bottom row: tasks count + DHT nodes
-      Row({ space: 10 }) {
-        Column({ space: 8 }) {
-          Text('下载任务')
-            .fontSize(11)
-            .fontWeight(FontWeight.Medium)
-            .fontColor($r('app.color.text_secondary'))
-          if (this.isLoading) {
-            Row()
-              .width(48)
-              .height(26)
-              .backgroundColor($r('app.color.dashboard_border'))
-              .borderRadius(8)
-          } else {
-            Text(`${this.downloadingCount}`)
-              .fontSize(28)
-              .fontWeight(FontWeight.Bold)
-              .fontColor($r('app.color.text_primary'))
-          }
-          Text('个任务下载中')
-            .fontSize(11)
-            .fontWeight(FontWeight.Normal)
-            .fontColor($r('app.color.accent_color'))
-        }
-        .layoutWeight(1)
-        .height(92)
-        .padding(16)
-        .alignItems(HorizontalAlign.Start)
-        .justifyContent(FlexAlign.SpaceBetween)
-        .backgroundColor($r('app.color.glass_bg_card'))
-        .backdropBlur(24)
-        .border({ width: 1, color: $r('app.color.glass_border') })
-        .borderRadius(20)
-
-        Column({ space: 8 }) {
-          Text('DHT 节点')
-            .fontSize(11)
-            .fontWeight(FontWeight.Medium)
-            .fontColor($r('app.color.text_secondary'))
-          if (this.isLoading) {
-            Row()
-              .width(56)
-              .height(26)
-              .backgroundColor($r('app.color.dashboard_border'))
-              .borderRadius(8)
-          } else {
-            Text(`${this.dhtNodes}`)
-              .fontSize(28)
-              .fontWeight(FontWeight.Bold)
-              .fontColor($r('app.color.text_primary'))
-          }
-          Text(this.dhtNodes > 200 ? '节点健康' : this.dhtNodes > 30 ? '连接中' : '搜索中')
-            .fontSize(11)
-            .fontWeight(FontWeight.Normal)
-            .fontColor($r('app.color.text_secondary'))
-        }
-        .layoutWeight(1)
-        .height(92)
-        .padding(16)
-        .alignItems(HorizontalAlign.Start)
-        .justifyContent(FlexAlign.SpaceBetween)
-        .backgroundColor($r('app.color.glass_bg_card'))
-        .backdropBlur(24)
-        .border({ width: 1, color: $r('app.color.glass_border') })
-        .borderRadius(20)
+      Stack({ alignContent: Alignment.Start }) {
+        Row()
+          .width('100%')
+          .height(6)
+          .backgroundColor('#24FFFFFF')
+          .borderRadius(999)
+        Row()
+          .width(this.getPercentWidth(percent))
+          .height(6)
+          .backgroundColor(fillColor)
+          .borderRadius(999)
       }
       .width('100%')
     }
@@ -1358,15 +1221,119 @@ export struct DashboardPage {
   }
 
   @Builder
+  heroMetricChip(label: string, value: string) {
+    Column({ space: 4 }) {
+      Text(label)
+        .fontSize(10)
+        .fontWeight(FontWeight.Medium)
+        .fontColor('#B9D8F4')
+      Text(value)
+        .fontSize(14)
+        .fontWeight(FontWeight.Bold)
+        .fontColor('#FFFFFF')
+        .maxLines(1)
+        .textOverflow({ overflow: TextOverflow.Ellipsis })
+    }
+    .layoutWeight(1)
+    .padding({ left: 10, right: 10, top: 10, bottom: 10 })
+    .backgroundColor('#14FFFFFF')
+    .border({ width: 1, color: '#24FFFFFF' })
+    .borderRadius(16)
+    .alignItems(HorizontalAlign.Start)
+  }
+
+  @Builder
+  bentoGrid() {
+    Column({ space: 10 }) {
+      Row({ space: 10 }) {
+        this.metricCard('下载速度', this.formatDashboardSpeed(this.dlSpeed),
+          this.dlRateLimit > 0 ? `限速 ${this.formatDashboardSpeed(this.dlRateLimit)}` : '不限速',
+          '#14A38B', $r('app.color.success_color'), 108)
+        this.metricCard('上传速度', this.formatDashboardSpeed(this.ulSpeed),
+          this.ulRateLimit > 0 ? `限速 ${this.formatDashboardSpeed(this.ulRateLimit)}` : '不限速',
+          '#C97716', $r('app.color.warning_color'), 108)
+      }
+      .width('100%')
+
+      Row({ space: 10 }) {
+        this.metricCard('下载任务', `${this.downloadingCount}`, '下载中',
+          '#2563EB', $r('app.color.accent_color'), 96)
+        this.metricCard('DHT 节点', `${this.dhtNodes}`,
+          this.dhtNodes > 200 ? '健康' : this.dhtNodes > 30 ? '连接' : '搜索',
+          '#64748B', $r('app.color.text_secondary'), 96)
+      }
+      .width('100%')
+    }
+    .width('100%')
+  }
+
+  @Builder
+  metricCard(title: string, value: string, caption: string, accent: string, dotColor: ResourceStr, height: number) {
+    Row({ space: 12 }) {
+      Row()
+        .width(4)
+        .height('100%')
+        .backgroundColor(accent)
+        .borderRadius(999)
+
+      Column({ space: 8 }) {
+        Row({ space: 6 }) {
+          Circle()
+            .width(7)
+            .height(7)
+            .fill(dotColor)
+          Text(title)
+            .fontSize(11)
+            .fontWeight(FontWeight.Medium)
+            .fontColor($r('app.color.text_secondary'))
+        }
+
+        if (this.isLoading) {
+          Row()
+            .width(80)
+            .height(28)
+            .backgroundColor($r('app.color.dashboard_border_soft'))
+            .borderRadius(10)
+        } else {
+          Text(value)
+            .minFontSize(14)
+            .maxFontSize(26)
+            .fontWeight(FontWeight.Bold)
+            .fontColor($r('app.color.text_primary'))
+            .maxLines(1)
+            .textOverflow({ overflow: TextOverflow.Ellipsis })
+        }
+
+        Text(caption)
+          .fontSize(11)
+          .fontWeight(FontWeight.Medium)
+          .fontColor($r('app.color.tab_inactive_fg'))
+          .maxLines(1)
+          .textOverflow({ overflow: TextOverflow.Ellipsis })
+      }
+      .layoutWeight(1)
+      .alignItems(HorizontalAlign.Start)
+      .justifyContent(FlexAlign.SpaceBetween)
+    }
+    .layoutWeight(1)
+    .height(height)
+    .padding({ left: 12, right: 14, top: 14, bottom: 14 })
+    .backgroundColor($r('app.color.card_background'))
+    .border({ width: 1, color: $r('app.color.dashboard_border_soft') })
+    .borderRadius(20)
+    .shadow({ radius: 14, color: '#0D1D4ED8', offsetX: 0, offsetY: 6 })
+  }
+
+  @Builder
   tasksSection() {
     Column({ space: 10 }) {
       Row() {
         Column({ space: 4 }) {
-          Text('正在下载')
+          Text('活动任务')
             .fontSize(16)
             .fontWeight(FontWeight.Medium)
             .fontColor($r('app.color.text_primary'))
-          Text(`${this.downloadingCount} 个任务进行中`)
+          Text(`${this.downloadingCount} 个进行中`)
             .fontSize(12)
             .fontWeight(FontWeight.Medium)
             .fontColor($r('app.color.text_secondary'))
@@ -1406,10 +1373,11 @@ export struct DashboardPage {
     }
     .width('100%')
     .padding(12)
-    .backgroundColor($r('app.color.glass_bg_card'))
+    .backgroundColor($r('app.color.glass_bg_elevated'))
     .backdropBlur(24)
     .border({ width: 1, color: $r('app.color.glass_border') })
     .borderRadius(24)
+    .shadow({ radius: 16, color: '#100F172A', offsetX: 0, offsetY: 6 })
   }
 
   @Builder
@@ -1459,9 +1427,7 @@ export struct DashboardPage {
             .borderRadius(999)
         }
         .alignItems(HorizontalAlign.Start)
-        .width(224)
-
-        Blank()
+        .layoutWeight(1)
 
         Row()
           .width(56)
@@ -1481,18 +1447,15 @@ export struct DashboardPage {
   @Builder
   emptyTaskCard() {
     Column({ space: 8 }) {
-      Text('当前没有活跃下载任务')
+      Text('暂无活动任务')
         .fontSize(14)
         .fontWeight(FontWeight.Medium)
         .fontColor($r('app.color.text_primary'))
-      Text('添加任务后会在这里显示进度、速度和剩余时间。')
-        .fontSize(12)
-        .fontWeight(FontWeight.Normal)
-        .fontColor($r('app.color.text_secondary'))
     }
     .width('100%')
     .padding(14)
-    .backgroundColor($r('app.color.glass_bg_card'))
+    .backgroundColor($r('app.color.dashboard_surface_soft'))
+    .border({ width: 1, color: $r('app.color.dashboard_border_soft') })
     .borderRadius(20)
     .alignItems(HorizontalAlign.Start)
   }
@@ -1514,24 +1477,26 @@ export struct DashboardPage {
           .maxLines(1)
           .textOverflow({ overflow: TextOverflow.Ellipsis })
       }
-      .width(224)
+      .layoutWeight(1)
       .alignItems(HorizontalAlign.Start)
-
-      Blank()
 
       Row() {
         Text(this.getTaskStatusText(this.activeTorrents[index]))
           .fontSize(11)
           .fontWeight(FontWeight.Medium)
           .fontColor(this.getTaskStatusColor(this.activeTorrents[index]))
+          .maxLines(1)
+          .textOverflow({ overflow: TextOverflow.Ellipsis })
       }
       .padding({ left: 10, right: 10, top: 6, bottom: 6 })
       .backgroundColor(this.getTaskStatusFill(this.activeTorrents[index]))
       .borderRadius(999)
+      .constraintSize({ maxWidth: 88 })
     }
     .width('100%')
     .padding({ left: 12, right: 12, top: 10, bottom: 10 })
-    .backgroundColor($r('app.color.glass_bg_elevated'))
+    .backgroundColor($r('app.color.card_background'))
+    .border({ width: 1, color: $r('app.color.dashboard_border_soft') })
     .borderRadius(18)
     .alignItems(VerticalAlign.Top)
     .onClick(() => {
@@ -1555,7 +1520,7 @@ export struct DashboardPage {
           .backgroundColor($r('app.color.dashboard_progress_track'))
           .borderRadius(999)
         Row()
-          .width(this.getTaskProgressWidth(this.activeTorrents[index], 300))
+          .width(this.getTaskProgressWidth(this.activeTorrents[index]))
           .height(8)
           .linearGradient({
             angle: 90,
@@ -1586,58 +1551,72 @@ export struct DashboardPage {
           .fontSize(10)
           .fontWeight(FontWeight.Normal)
           .fontColor($r('app.color.tab_inactive_fg'))
-        Blank()
-        Row({ space: 8 }) {
-          Row({ space: 4 }) {
-            Text('详情')
-              .fontSize(11)
-              .fontWeight(FontWeight.Medium)
-              .fontColor($r('app.color.accent_color'))
-          }
-          .padding({ left: 10, right: 10, top: 6, bottom: 6 })
-          .backgroundColor($r('app.color.dashboard_surface_info'))
-          .borderRadius(999)
-          .onClick(() => {
-            this.openTorrentDetail(this.activeTorrents[index].hash);
-          })
+          .layoutWeight(1)
+          .maxLines(1)
+          .textOverflow({ overflow: TextOverflow.Ellipsis })
+      }
+      .width('100%')
+      .alignItems(VerticalAlign.Center)
 
-          Row({ space: 4 }) {
-            Text('暂停')
-              .fontSize(11)
-              .fontWeight(FontWeight.Medium)
-              .fontColor($r('app.color.text_secondary'))
-          }
-          .padding({ left: 10, right: 10, top: 6, bottom: 6 })
-          .backgroundColor($r('app.color.card_background'))
-          .border({
-            width: 1,
-            color: $r('app.color.dashboard_border')
-          })
-          .borderRadius(999)
-          .onClick(() => {
-            this.pauseTorrentByHash(this.activeTorrents[index].hash);
-          })
-
-          Row({ space: 4 }) {
-            Text('删除')
-              .fontSize(11)
-              .fontWeight(FontWeight.Medium)
-              .fontColor($r('app.color.error_color'))
-          }
-          .padding({ left: 10, right: 10, top: 6, bottom: 6 })
-          .backgroundColor($r('app.color.dashboard_surface_danger'))
-          .borderRadius(999)
-          .onClick(() => {
-            this.requestDeleteTorrent(this.activeTorrents[index].hash);
-          })
+      Row({ space: 8 }) {
+        Row({ space: 4 }) {
+          Text('详情')
+            .fontSize(11)
+            .fontWeight(FontWeight.Medium)
+            .fontColor($r('app.color.accent_color'))
         }
+        .layoutWeight(1)
+        .justifyContent(FlexAlign.Center)
+        .padding({ left: 10, right: 10, top: 6, bottom: 6 })
+        .backgroundColor($r('app.color.dashboard_surface_info'))
+        .border({ width: 1, color: $r('app.color.download_selected_border') })
+        .borderRadius(999)
+        .onClick(() => {
+          this.openTorrentDetail(this.activeTorrents[index].hash);
+        })
+
+        Row({ space: 4 }) {
+          Text('暂停')
+            .fontSize(11)
+            .fontWeight(FontWeight.Medium)
+            .fontColor($r('app.color.text_secondary'))
+        }
+        .layoutWeight(1)
+        .justifyContent(FlexAlign.Center)
+        .padding({ left: 10, right: 10, top: 6, bottom: 6 })
+        .backgroundColor($r('app.color.card_background'))
+        .border({
+          width: 1,
+          color: $r('app.color.dashboard_border')
+        })
+        .borderRadius(999)
+        .onClick(() => {
+          this.pauseTorrentByHash(this.activeTorrents[index].hash);
+        })
+
+        Row({ space: 4 }) {
+          Text('删除')
+            .fontSize(11)
+            .fontWeight(FontWeight.Medium)
+            .fontColor($r('app.color.error_color'))
+        }
+        .layoutWeight(1)
+        .justifyContent(FlexAlign.Center)
+        .padding({ left: 10, right: 10, top: 6, bottom: 6 })
+        .backgroundColor($r('app.color.dashboard_surface_danger'))
+        .border({ width: 1, color: $r('app.color.download_warn_border') })
+        .borderRadius(999)
+        .onClick(() => {
+          this.requestDeleteTorrent(this.activeTorrents[index].hash);
+        })
       }
       .width('100%')
       .alignItems(VerticalAlign.Center)
     }
     .width('100%')
     .padding(10)
-    .backgroundColor($r('app.color.glass_bg_card'))
+    .backgroundColor($r('app.color.dashboard_surface_soft'))
+    .border({ width: 1, color: $r('app.color.dashboard_border_soft') })
     .borderRadius(20)
     .alignItems(HorizontalAlign.Start)
   }

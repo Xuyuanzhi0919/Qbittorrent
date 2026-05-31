@@ -16,12 +16,8 @@ export struct SettingsPage {
   @State serverUsername: string = '';
   @State pollingInterval: number = AppConstants.DEFAULT_POLLING_INTERVAL;
   @State isDisconnecting: boolean = false;
-  @State isReconnecting: boolean = false;
-  @State isClearingConfig: boolean = false;
   @State actionMessage: string = '';
-  @State showMoreSettings: boolean = false;
   @State @Watch('onAnySheetChanged') showDisconnectConfirm: boolean = false;
-  @State @Watch('onAnySheetChanged') showClearConfigConfirm: boolean = false;
   private actionMessageTimer: number = -1;
   private readonly pollingOptions: number[] = [1000, 2000, 5000, 10000];
 
@@ -52,8 +48,7 @@ export struct SettingsPage {
   }
 
   private onAnySheetChanged(): void {
-    const anyOpen: boolean = this.showDisconnectConfirm || this.showClearConfigConfirm;
-    AppStorage.setOrCreate('showRootTabBar', !anyOpen);
+    AppStorage.setOrCreate('showRootTabBar', !this.showDisconnectConfirm);
   }
 
   private async handleDisconnect(): Promise<void> {
@@ -68,56 +63,6 @@ export struct SettingsPage {
     } finally {
       this.isDisconnecting = false;
       this.showDisconnectConfirm = false;
-    }
-  }
-
-  private async handleReconnect(): Promise<void> {
-    if (this.isReconnecting || this.guestMode) {
-      return;
-    }
-    this.isReconnecting = true;
-    try {
-      let hasConfig: boolean = this.connectionManager.serverConfig !== null;
-      if (!hasConfig) {
-        hasConfig = await this.connectionManager.loadSavedConfig();
-      }
-      if (!hasConfig) {
-        this.showActionMessage('未找到服务器配置');
-        return;
-      }
-      const connected: boolean = await this.connectionManager.autoReconnect();
-      this.isConnected = connected;
-      if (connected) {
-        const config = this.connectionManager.serverConfig;
-        if (config !== null) {
-          this.serverUrl = config.url;
-          this.serverUsername = config.username;
-        }
-        this.showActionMessage('已重新连接服务器');
-        return;
-      }
-      this.showActionMessage('重新连接失败，请检查密码或网络');
-    } finally {
-      this.isReconnecting = false;
-    }
-  }
-
-  private async handleClearConfig(): Promise<void> {
-    if (this.isClearingConfig || this.guestMode) {
-      return;
-    }
-    this.isClearingConfig = true;
-    try {
-      this.service.stopPolling();
-      await this.connectionManager.disconnectAndClear();
-      this.serverUrl = '';
-      this.serverUsername = '';
-      this.isConnected = false;
-      this.showClearConfigConfirm = false;
-      AppStorage.setOrCreate('currentTabIndex', 0);
-      AppService.getNavPathStack().clear();
-    } finally {
-      this.isClearingConfig = false;
     }
   }
 
@@ -215,31 +160,34 @@ export struct SettingsPage {
 
           this.statusCard()
 
-          this.quickActions()
+          this.overviewGrid()
 
-          this.moreSettingsGroup()
+          this.sectionLabel('连接')
+          this.connectionGroup()
+
+          this.sectionLabel('偏好')
+          this.pollingGroup()
+
+          this.sectionLabel('应用')
+          this.aboutGroup()
+
+          this.disconnectArea()
 
           Blank().height(this.rootTabBarReserveHeight + 14)
         }
         .width('100%')
-        .height('100%')
         .padding({ left: 20, right: 20, top: 62 })
-        .alignItems(HorizontalAlign.Start)
-        .justifyContent(FlexAlign.Start)
       }
       .scrollBar(BarState.Off)
       .edgeEffect(EdgeEffect.Spring)
       .width('100%')
       .height('100%')
       .backgroundColor(Color.Transparent)
-      .blur(this.showDisconnectConfirm || this.showClearConfigConfirm ? 16 : 0)
+      .blur(this.showDisconnectConfirm ? 16 : 0)
       .animation({ duration: 220, curve: Curve.EaseOut })
 
       if (this.showDisconnectConfirm) {
         this.disconnectConfirmDialog()
-      }
-      if (this.showClearConfigConfirm) {
-        this.clearConfigConfirmDialog()
       }
     }
     .width('100%')
@@ -282,6 +230,22 @@ export struct SettingsPage {
         .fontColor($r('app.color.text_primary'))
 
       Blank()
+
+      Row({ space: 8 }) {
+        Circle()
+          .width(8)
+          .height(8)
+          .fill(this.getStatusColor())
+        Text(this.getStatusText())
+          .fontSize(12)
+          .fontWeight(FontWeight.Medium)
+          .fontColor($r('app.color.text_primary'))
+      }
+      .padding({ left: 12, right: 12, top: 8, bottom: 8 })
+      .backgroundColor($r('app.color.glass_bg_card'))
+      .backdropBlur(24)
+      .border({ width: 1, color: $r('app.color.glass_border') })
+      .borderRadius(999)
     }
     .width('100%')
     .height(46)
@@ -303,7 +267,7 @@ export struct SettingsPage {
         .alignItems(VerticalAlign.Center)
         .backgroundColor($r('app.color.dashboard_surface_info'))
         .border({ width: 1, color: $r('app.color.download_selected_border') })
-        .borderRadius(18)
+        .borderRadius(20)
 
         Column({ space: 5 }) {
           Text(this.guestMode ? '示例体验账户' : 'qBittorrent 账户')
@@ -322,19 +286,17 @@ export struct SettingsPage {
         .layoutWeight(1)
         .alignItems(HorizontalAlign.Start)
 
-        Row({ space: 8 }) {
-          Circle()
-            .width(8)
-            .height(8)
-            .fill(this.getStatusColor())
-          Text(this.getStatusText())
-            .fontSize(12)
-            .fontWeight(FontWeight.Bold)
-            .fontColor(this.getStatusColor())
-        }
-        .padding({ left: 10, right: 10, top: 6, bottom: 6 })
-        .backgroundColor(this.getStatusBgColor())
-        .borderRadius(999)
+        Text('管理连接')
+          .fontSize(12)
+          .fontWeight(FontWeight.Medium)
+          .fontColor($r('app.color.accent_color'))
+          .padding({ left: 14, right: 14, top: 8, bottom: 8 })
+          .backgroundColor($r('app.color.dashboard_surface_info'))
+          .border({ width: 1, color: $r('app.color.download_selected_border') })
+          .borderRadius(999)
+          .onClick(() => {
+            this.openServerConfig();
+          })
       }
       .width('100%')
       .alignItems(VerticalAlign.Center)
@@ -362,7 +324,7 @@ export struct SettingsPage {
     .backgroundColor($r('app.color.glass_bg_card'))
     .backdropBlur(24)
     .border({ width: 1, color: $r('app.color.glass_border') })
-    .borderRadius(24)
+    .borderRadius(28)
     .shadow({
       radius: 20,
       color: '#0F172A14',
@@ -372,136 +334,87 @@ export struct SettingsPage {
   }
 
   @Builder
-  quickActions() {
+  overviewGrid() {
     Row({ space: 10 }) {
-      this.quickActionChip('管理连接', $r('sys.symbol.link'), () => {
-        this.openServerConfig();
-      })
-      if (!this.guestMode) {
-        this.quickActionChip(this.isReconnecting ? '连接中' : '重新连接', $r('sys.symbol.arrow_2_circlepath'), () => {
-          this.handleReconnect();
-        })
-      }
+      this.overviewTile(
+        '连接状态',
+        this.getStatusText(),
+        $r('sys.symbol.link'),
+        this.getStatusColor(),
+        this.getStatusBgColor()
+      )
+      this.overviewTile(
+        '刷新频率',
+        this.getPollingLabel(),
+        $r('sys.symbol.arrow_2_circlepath'),
+        $r('app.color.accent_color'),
+        $r('app.color.dashboard_surface_info')
+      )
     }
     .width('100%')
   }
 
   @Builder
-  quickActionChip(label: string, icon: Resource, action: () => void) {
-    Row({ space: 8 }) {
-      if (this.isReconnecting && label === '连接中') {
-        LoadingProgress()
-          .width(16)
-          .height(16)
-          .color($r('app.color.accent_color'))
-      } else {
+  overviewTile(label: string, value: string, icon: Resource, toneColor: Resource, surfaceColor: Resource) {
+    Column({ space: 10 }) {
+      Row() {
         SymbolGlyph(icon)
-          .fontSize(15)
-          .fontColor([$r('app.color.accent_color')])
+          .fontSize(16)
+          .fontColor([toneColor])
+        Blank()
+        Circle()
+          .width(8)
+          .height(8)
+          .fill(toneColor)
       }
-      Text(label)
-        .fontSize(13)
-        .fontWeight(FontWeight.Medium)
-        .fontColor($r('app.color.text_primary'))
+      .width('100%')
+      .alignItems(VerticalAlign.Center)
+
+      Column({ space: 4 }) {
+        Text(value)
+          .fontSize(17)
+          .fontWeight(FontWeight.Bold)
+          .fontColor($r('app.color.text_primary'))
+          .maxLines(1)
+          .textOverflow({ overflow: TextOverflow.Ellipsis })
+        Text(label)
+          .fontSize(11)
+          .fontColor($r('app.color.text_secondary'))
+      }
+      .width('100%')
+      .alignItems(HorizontalAlign.Start)
     }
     .layoutWeight(1)
-    .height(46)
-    .justifyContent(FlexAlign.Center)
-    .alignItems(VerticalAlign.Center)
-    .backgroundColor($r('app.color.glass_bg_card'))
-    .backdropBlur(20)
+    .padding({ left: 14, right: 14, top: 14, bottom: 14 })
+    .backgroundColor(surfaceColor)
     .border({ width: 1, color: $r('app.color.glass_border') })
-    .borderRadius(999)
-    .enabled(!(this.isReconnecting && label === '连接中'))
-    .onClick(action)
+    .borderRadius(20)
   }
 
   @Builder
-  moreSettingsGroup() {
-    Column() {
-      Row({ space: 12 }) {
-        Row() {
-          SymbolGlyph($r('sys.symbol.gearshape'))
-            .fontSize(17)
-            .fontColor([$r('app.color.accent_color')])
-        }
-        .width(34)
-        .height(34)
-        .justifyContent(FlexAlign.Center)
-        .alignItems(VerticalAlign.Center)
-        .backgroundColor($r('app.color.dashboard_surface_info'))
-        .borderRadius(999)
-
-        Column({ space: 3 }) {
-          Text('更多设置')
-            .fontSize(15)
-            .fontWeight(FontWeight.Bold)
-            .fontColor($r('app.color.text_primary'))
-          Text(this.showMoreSettings ? '收起低频设置和账户操作' : '刷新间隔、应用信息和账户操作')
-            .fontSize(12)
-            .fontColor($r('app.color.text_secondary'))
-            .maxLines(1)
-            .textOverflow({ overflow: TextOverflow.Ellipsis })
-        }
-        .layoutWeight(1)
-        .alignItems(HorizontalAlign.Start)
-
-        SymbolGlyph(this.showMoreSettings ? $r('sys.symbol.chevron_up') : $r('sys.symbol.chevron_down'))
-          .fontSize(16)
-          .fontColor([$r('app.color.tab_inactive_fg')])
-      }
+  sectionLabel(label: string) {
+    Text(label)
+      .fontSize(12)
+      .fontWeight(FontWeight.Medium)
+      .fontColor($r('app.color.text_secondary'))
       .width('100%')
-      .padding({ left: 16, right: 16, top: 15, bottom: 15 })
-      .alignItems(VerticalAlign.Center)
-      .onClick(() => {
-        this.showMoreSettings = !this.showMoreSettings;
+      .padding({ left: 4, top: 8, bottom: 0 })
+  }
+
+  @Builder
+  connectionGroup() {
+    Column() {
+      this.settingsRow('服务器地址', this.getServerAddressText(), $r('sys.symbol.link'), () => {
+        this.openServerConfig();
       })
 
-      if (this.showMoreSettings) {
-        Divider()
-          .color($r('app.color.dashboard_border_soft'))
-          .margin({ left: 16, right: 16 })
+      Divider()
+        .color($r('app.color.dashboard_border_soft'))
+        .margin({ left: 52 })
 
-        this.settingsRow('服务器地址', this.getServerAddressText(), $r('sys.symbol.link'), () => {
-          this.openServerConfig();
-        })
-
-        Divider()
-          .color($r('app.color.dashboard_border_soft'))
-          .margin({ left: 52 })
-
-        this.settingsRow('登录账户', this.getAccountText(), $r('sys.symbol.person'), () => {
-          this.openServerConfig();
-        })
-
-        Divider()
-          .color($r('app.color.dashboard_border_soft'))
-          .margin({ left: 16, right: 16 })
-
-        this.pollingInlineSection()
-
-        Divider()
-          .color($r('app.color.dashboard_border_soft'))
-          .margin({ left: 16, right: 16 })
-
-        this.infoRow('应用版本', 'v1.0.0')
-
-        Divider()
-          .color($r('app.color.dashboard_border_soft'))
-          .margin({ left: 16 })
-
-        this.infoRow('WebUI API', 'qBittorrent 5.x')
-
-        Divider()
-          .color($r('app.color.dashboard_border_soft'))
-          .margin({ left: 16, right: 16 })
-
-        Column() {
-          this.accountActions()
-        }
-        .width('100%')
-        .padding({ left: 16, right: 16, top: 14, bottom: 16 })
-      }
+      this.settingsRow('登录账户', this.getAccountText(), $r('sys.symbol.person'), () => {
+        this.openServerConfig();
+      })
     }
     .width('100%')
     .backgroundColor($r('app.color.glass_bg_card'))
@@ -551,16 +464,16 @@ export struct SettingsPage {
   }
 
   @Builder
-  pollingInlineSection() {
-    Column({ space: 12 }) {
+  pollingGroup() {
+    Column({ space: 14 }) {
       Row() {
         Row() {
           SymbolGlyph($r('sys.symbol.arrow_2_circlepath'))
             .fontSize(16)
             .fontColor([$r('app.color.accent_color')])
         }
-        .width(28)
-        .height(28)
+        .width(30)
+        .height(30)
         .justifyContent(FlexAlign.Center)
         .alignItems(VerticalAlign.Center)
         .backgroundColor($r('app.color.dashboard_surface_info'))
@@ -574,8 +487,6 @@ export struct SettingsPage {
           Text('影响仪表盘和下载列表更新频率')
             .fontSize(12)
             .fontColor($r('app.color.text_secondary'))
-            .maxLines(1)
-            .textOverflow({ overflow: TextOverflow.Ellipsis })
         }
         .layoutWeight(1)
         .alignItems(HorizontalAlign.Start)
@@ -597,7 +508,7 @@ export struct SettingsPage {
               .fontColor(this.pollingInterval === ms ? $r('app.color.tab_active_fg') : $r('app.color.text_secondary'))
           }
           .layoutWeight(1)
-          .height(36)
+          .height(38)
           .justifyContent(FlexAlign.Center)
           .backgroundColor(this.pollingInterval === ms ? $r('app.color.tab_active_bg') : $r('app.color.dashboard_surface_soft'))
           .border({
@@ -614,6 +525,29 @@ export struct SettingsPage {
     }
     .width('100%')
     .padding({ left: 16, right: 16, top: 14, bottom: 14 })
+    .backgroundColor($r('app.color.glass_bg_card'))
+    .backdropBlur(22)
+    .border({ width: 1, color: $r('app.color.glass_border') })
+    .borderRadius(24)
+  }
+
+  @Builder
+  aboutGroup() {
+    Column() {
+      this.infoRow('应用版本', 'v1.0.0')
+
+      Divider()
+        .color($r('app.color.dashboard_border_soft'))
+        .margin({ left: 16 })
+
+      this.infoRow('WebUI API', 'qBittorrent 5.x')
+    }
+    .width('100%')
+    .backgroundColor($r('app.color.glass_bg_card'))
+    .backdropBlur(22)
+    .border({ width: 1, color: $r('app.color.glass_border') })
+    .borderRadius(24)
+    .clip(true)
   }
 
   @Builder
@@ -634,69 +568,32 @@ export struct SettingsPage {
   }
 
   @Builder
-  accountActions() {
+  disconnectArea() {
     Row() {
-      if (this.guestMode) {
-        this.accountActionButton(
-          this.isDisconnecting ? '退出中…' : '退出示例体验',
-          $r('sys.symbol.xmark'),
-          $r('app.color.accent_color'),
-          $r('app.color.dashboard_surface_info'),
-          () => {
-            this.exitGuestMode();
-          }
-        )
-      } else {
-        this.accountActionButton(
-          this.isDisconnecting ? '断开中…' : '断开服务器',
-          $r('sys.symbol.xmark'),
-          $r('app.color.error_color'),
-          $r('app.color.dashboard_surface_danger'),
-          () => {
-            if (!this.isDisconnecting) {
-              this.showDisconnectConfirm = true;
-            }
-          }
-        )
-        Blank().width(10)
-        this.accountActionButton(
-          this.isClearingConfig ? '清除中…' : '清除配置',
-          $r('sys.symbol.trash'),
-          $r('app.color.error_color'),
-          $r('app.color.dashboard_surface_danger'),
-          () => {
-            if (!this.isClearingConfig) {
-              this.showClearConfigConfirm = true;
-            }
-          }
-        )
-      }
+      Text(this.guestMode ? '退出示例体验' : (this.isDisconnecting ? '断开中…' : '断开当前服务器'))
+        .fontSize(14)
+        .fontWeight(FontWeight.Medium)
+        .fontColor(this.guestMode ? $r('app.color.accent_color') : $r('app.color.error_color'))
     }
     .width('100%')
-  }
-
-  @Builder
-  accountActionButton(label: string, icon: Resource, toneColor: Resource, surfaceColor: Resource, action: () => void) {
-    Row({ space: 8 }) {
-      SymbolGlyph(icon)
-        .fontSize(15)
-        .fontColor([toneColor])
-      Text(label)
-        .fontSize(13)
-        .fontWeight(FontWeight.Medium)
-        .fontColor(toneColor)
-    }
-    .layoutWeight(1)
-    .height(46)
+    .height(50)
     .justifyContent(FlexAlign.Center)
-    .alignItems(VerticalAlign.Center)
-    .backgroundColor(surfaceColor)
+    .backgroundColor(this.guestMode ? $r('app.color.dashboard_surface_info') : $r('app.color.dashboard_surface_danger'))
     .border({
       width: 1,
-      color: toneColor
+      color: this.guestMode ? $r('app.color.download_selected_border') : $r('app.color.download_warn_border')
     })
     .borderRadius(999)
-    .onClick(action)
+    .onClick(() => {
+      if (this.isDisconnecting) {
+        return;
+      }
+      if (this.guestMode) {
+        this.exitGuestMode();
+        return;
+      }
+      this.showDisconnectConfirm = true;
+    })
   }
 
   @Builder
@@ -748,69 +645,6 @@ export struct SettingsPage {
             .enabled(!this.isDisconnecting)
             .onClick(() => {
               this.handleDisconnect();
-            })
-        }
-        .width('100%')
-      }
-      .width(290)
-      .padding(20)
-      .backgroundColor($r('app.color.card_background'))
-      .borderRadius(24)
-      .alignItems(HorizontalAlign.Start)
-    }
-    .width('100%')
-    .height('100%')
-  }
-
-  @Builder
-  clearConfigConfirmDialog() {
-    Stack({ alignContent: Alignment.Center }) {
-      Row()
-        .width('100%')
-        .height('100%')
-        .backgroundColor($r('app.color.dashboard_overlay'))
-        .onClick(() => {
-          if (!this.isClearingConfig) {
-            this.showClearConfigConfirm = false;
-          }
-        })
-
-      Column({ space: 16 }) {
-        Column({ space: 6 }) {
-          Text('清除服务器配置')
-            .fontSize(18)
-            .fontWeight(FontWeight.Bold)
-            .fontColor($r('app.color.text_primary'))
-          Text('将清除已保存的服务器地址、账户和密码，并返回连接配置页。')
-            .fontSize(13)
-            .fontColor($r('app.color.text_secondary'))
-        }
-        .width('100%')
-        .alignItems(HorizontalAlign.Start)
-
-        Row({ space: 10 }) {
-          Button('取消')
-            .layoutWeight(1)
-            .height(44)
-            .fontSize(14)
-            .fontColor($r('app.color.text_primary'))
-            .backgroundColor($r('app.color.dashboard_surface_muted'))
-            .borderRadius(999)
-            .enabled(!this.isClearingConfig)
-            .onClick(() => {
-              this.showClearConfigConfirm = false;
-            })
-
-          Button(this.isClearingConfig ? '清除中…' : '确认清除')
-            .layoutWeight(1)
-            .height(44)
-            .fontSize(14)
-            .fontColor($r('app.color.tab_active_fg'))
-            .backgroundColor($r('app.color.error_color'))
-            .borderRadius(999)
-            .enabled(!this.isClearingConfig)
-            .onClick(() => {
-              this.handleClearConfig();
             })
         }
         .width('100%')

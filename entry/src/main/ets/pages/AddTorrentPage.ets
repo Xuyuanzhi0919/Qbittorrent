@@ -5,7 +5,6 @@ import { picker } from '@kit.CoreFileKit';
 import fs from '@ohos.file.fs';
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { AppConstants } from '../common/constants/AppConstants';
-import { PreferencesStore } from '../store/PreferencesStore';
 
 @Component
 export struct AddTorrentPage {
@@ -21,10 +20,8 @@ export struct AddTorrentPage {
   @State selectedFilePath: string = '';
   @State selectedFileName: string = '';
   private pathStack: NavPathStack = new NavPathStack();
-  private store: PreferencesStore = PreferencesStore.getInstance();
 
-  async aboutToAppear(): Promise<void> {
-    this.savePath = await this.store.loadLastDownloadPath();
+  aboutToAppear(): void {
   }
 
   aboutToDisappear(): void {
@@ -72,9 +69,6 @@ export struct AddTorrentPage {
 
     this.isAdding = false;
     if (success) {
-      if (savePathOpt !== undefined) {
-        await this.store.saveLastDownloadPath(savePathOpt);
-      }
       this.resultMessage = '任务已添加';
       this.isSuccess = true;
       this.notifyDownloadListUpdated();
@@ -119,6 +113,7 @@ export struct AddTorrentPage {
 
   private clearForm(): void {
     this.torrentUrl = '';
+    this.savePath = '';
     this.category = '';
     this.tags = '';
     this.startPaused = false;
@@ -457,7 +452,6 @@ export struct AddTorrentPage {
             .padding({ left: 0, right: 0 })
             .onChange((value: string) => {
               this.savePath = value;
-              this.store.saveLastDownloadPath(value.trim());
             })
         }
         .layoutWeight(1)

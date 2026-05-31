@@ -6,9 +6,9 @@
         "type": "HarmonyOS",
         "material": {
           "storeFile": "/Users/chasexu/peizhi/2.p12",
-          "storePassword": "0000001A665607A512B3E258877F19FC8435859960DC0C270C00AFB6BB275CE9FD99930D94E678DAA49C",
+          "storePassword": "0000001AEF3841469250A528EC8925D3DDA2A7C63707B9F9B138A3C6D8A81F6376AF41AA04E08EAB9AC6",
           "keyAlias": "publish",
-          "keyPassword": "0000001AD8B15C12A2D367D42D0FA931769B28EBF46D1BAE3B8056B17E4128C04C97278E797AF537734B",
+          "keyPassword": "0000001ADC702FD2DE239D10AC0C68BC0C925BB1EC7815D16409ED3B8CF7FE9B21F0E404D24D651FCBFA",
           "signAlg": "SHA256withECDSA",
           "profile": "/Users/chasexu/Downloads/publishRelease1.p7b",
           "certpath": "/Users/chasexu/Downloads/publish1.cer"
@@ -20,11 +20,11 @@
         "material": {
           "certpath": "/Users/chasexu/.ohos/config/test_Qbittorrent_VD9iCLjJrli9AJgCTmJsF_yTOYgfCJyPQAh1QGn3Jas=.cer",
           "keyAlias": "debugKey",
-          "keyPassword": "0000001B9559E3A397A6FF837BDAB5C79B76DCD8D33166C52998A9B2B0EE3BA25BC8C5DF7D6E20F5B29107",
+          "keyPassword": "00000018717EDE708156FB08965F6D2F4665BDE4C89579A0EB2BECC312AEC79779A888B8F335C14C",
           "profile": "/Users/chasexu/.ohos/config/test_Qbittorrent_VD9iCLjJrli9AJgCTmJsF_yTOYgfCJyPQAh1QGn3Jas=.p7b",
           "signAlg": "SHA256withECDSA",
           "storeFile": "/Users/chasexu/.ohos/config/test_Qbittorrent_VD9iCLjJrli9AJgCTmJsF_yTOYgfCJyPQAh1QGn3Jas=.p12",
-          "storePassword": "0000001B2F69F575AFC4914C63BF715F5050431E1527693EA34A56FFAEED678F06F9CAB8C524123C20434E"
+          "storePassword": "0000001864BF260F13CC756CFF0DADFA489A9BA512BAB10373311FD6EB38105EF080E40064FAE291"
         }
       }
     ],

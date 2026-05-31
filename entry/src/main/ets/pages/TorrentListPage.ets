@@ -844,7 +844,7 @@ export struct TorrentListPage {
                 .fontColor([this.selectedTab === index ? $r('app.color.tab_active_fg') : $r('app.color.tab_inactive_fg')])
             }
             Text(tab)
-              .fontSize(12)
+              .fontSize(11)
               .fontWeight(FontWeight.Medium)
               .fontColor(this.selectedTab === index ? $r('app.color.tab_active_fg') : $r('app.color.tab_inactive_fg'))
           }
@@ -873,12 +873,12 @@ export struct TorrentListPage {
     Row({ space: 8 }) {
       Row({ space: 8 }) {
         SymbolGlyph($r('sys.symbol.magnifyingglass'))
-          .fontSize(17)
+          .fontSize(15)
           .fontColor([$r('app.color.tab_inactive_fg')])
         TextInput({ placeholder: '搜索任务、标签或分类', text: this.searchQuery })
-          .placeholderFont({ size: 14, weight: FontWeight.Normal })
+          .placeholderFont({ size: 11, weight: FontWeight.Normal })
           .placeholderColor($r('app.color.tab_inactive_fg'))
-          .fontSize(14)
+          .fontSize(13)
           .fontColor($r('app.color.text_primary'))
           .backgroundColor(Color.Transparent)
           .layoutWeight(1)
@@ -925,7 +925,7 @@ export struct TorrentListPage {
           .fontSize(15)
           .fontColor([this.isFilterActive() ? $r('app.color.accent_color') : $r('app.color.text_primary')])
         Text(this.getCurrentSortLabel())
-          .fontSize(13)
+          .fontSize(12)
           .fontWeight(FontWeight.Medium)
           .fontColor(this.isFilterActive() ? $r('app.color.accent_color') : $r('app.color.text_primary'))
       }
@@ -948,7 +948,7 @@ export struct TorrentListPage {
           .fontSize(this.torrents.length === 0 ? 15 : 14)
           .fontColor([$r('app.color.accent_color')])
         Text(this.torrents.length === 0 ? '添加' : (this.selectionMode ? '取消' : '多选'))
-          .fontSize(13)
+          .fontSize(12)
           .fontWeight(FontWeight.Medium)
           .fontColor($r('app.color.accent_color'))
       }
