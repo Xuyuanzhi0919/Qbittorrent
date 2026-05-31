@@ -846,10 +846,10 @@ export struct DashboardPage {
       Column() {
         Row()
           .width('100%')
-          .height(520)
+          .height(760)
           .linearGradient({
             angle: 180,
-            colors: [[Color.Transparent, 0], [$r('app.color.page_background'), 1]]
+            colors: [[Color.Transparent, 0], [Color.Transparent, 0.55], [$r('app.color.page_background'), 1]]
           })
         Blank()
       }
