@@ -796,7 +796,12 @@ export struct DashboardPage {
             }
           }
           .width('100%')
-          .padding({ left: 20, right: 20, top: 62, bottom: 12 })
+          .padding({
+            left: AppConstants.PAGE_HORIZONTAL_PADDING,
+            right: AppConstants.PAGE_HORIZONTAL_PADDING,
+            top: AppConstants.PAGE_TOP_PADDING,
+            bottom: AppConstants.PAGE_HEADER_BOTTOM_PADDING
+          })
         }
         .width('100%')
         .backgroundColor(Color.Transparent)
@@ -812,7 +817,12 @@ export struct DashboardPage {
               Blank().height(this.rootTabBarReserveHeight)
             }
             .width('100%')
-            .padding({ left: 20, right: 20, top: 0, bottom: 12 })
+            .padding({
+              left: AppConstants.PAGE_HORIZONTAL_PADDING,
+              right: AppConstants.PAGE_HORIZONTAL_PADDING,
+              top: 0,
+              bottom: AppConstants.PAGE_HEADER_BOTTOM_PADDING
+            })
           }
           .scrollBar(BarState.Off)
           .edgeEffect(EdgeEffect.Spring)
@@ -979,6 +989,7 @@ export struct DashboardPage {
       .borderRadius(999)
     }
     .width('100%')
+    .height(AppConstants.PAGE_HEADER_HEIGHT)
     .alignItems(VerticalAlign.Center)
   }
 

@@ -191,30 +191,52 @@ export struct SettingsPage {
 
   build() {
     Stack() {
-      Scroll() {
-        Column({ space: 12 }) {
-          if (this.actionMessage.length > 0) {
-            this.actionBanner()
+      Column({ space: 0 }) {
+        Column() {
+          Column({ space: 12 }) {
+            this.headerSection()
+
+            if (this.actionMessage.length > 0) {
+              this.actionBanner()
+            }
           }
-
-          this.headerSection()
-
-          this.statusCard()
-
-          this.quickActions()
-
-          this.moreSettingsGroup()
-
-          Blank().height(this.rootTabBarReserveHeight + 14)
+          .width('100%')
+          .padding({
+            left: AppConstants.PAGE_HORIZONTAL_PADDING,
+            right: AppConstants.PAGE_HORIZONTAL_PADDING,
+            top: AppConstants.PAGE_TOP_PADDING,
+            bottom: AppConstants.PAGE_HEADER_BOTTOM_PADDING
+          })
         }
         .width('100%')
-        .height('100%')
-        .padding({ left: 20, right: 20, top: 62 })
-        .alignItems(HorizontalAlign.Start)
-        .justifyContent(FlexAlign.Start)
+        .backgroundColor(Color.Transparent)
+
+        Scroll() {
+          Column({ space: 12 }) {
+            this.statusCard()
+
+            this.quickActions()
+
+            this.moreSettingsGroup()
+
+            Blank().height(this.rootTabBarReserveHeight + 14)
+          }
+          .width('100%')
+          .height('100%')
+          .padding({
+            left: AppConstants.PAGE_HORIZONTAL_PADDING,
+            right: AppConstants.PAGE_HORIZONTAL_PADDING,
+            top: 0
+          })
+          .alignItems(HorizontalAlign.Start)
+          .justifyContent(FlexAlign.Start)
+        }
+        .scrollBar(BarState.Off)
+        .edgeEffect(EdgeEffect.Spring)
+        .width('100%')
+        .layoutWeight(1)
+        .backgroundColor(Color.Transparent)
       }
-      .scrollBar(BarState.Off)
-      .edgeEffect(EdgeEffect.Spring)
       .width('100%')
       .height('100%')
       .backgroundColor(Color.Transparent)
@@ -288,7 +310,7 @@ export struct SettingsPage {
       Blank()
     }
     .width('100%')
-    .height(46)
+    .height(AppConstants.PAGE_HEADER_HEIGHT)
     .alignItems(VerticalAlign.Center)
   }
 

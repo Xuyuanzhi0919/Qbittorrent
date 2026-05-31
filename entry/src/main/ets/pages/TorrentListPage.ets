@@ -117,7 +117,8 @@ export struct TorrentListPage {
       return 0;
     }
 
-    let height: number = 62 + 46 + 44 + 36 + 24 + 12;
+    let height: number = AppConstants.PAGE_TOP_PADDING + AppConstants.PAGE_HEADER_HEIGHT + 44 + 36 + 24 +
+      AppConstants.PAGE_HEADER_BOTTOM_PADDING;
     if (this.actionMessage.length > 0) {
       height += 52;
     }
@@ -663,7 +664,12 @@ export struct TorrentListPage {
             }
           }
           .width('100%')
-          .padding({ left: 20, right: 20, top: 62, bottom: 12 })
+          .padding({
+            left: AppConstants.PAGE_HORIZONTAL_PADDING,
+            right: AppConstants.PAGE_HORIZONTAL_PADDING,
+            top: AppConstants.PAGE_TOP_PADDING,
+            bottom: AppConstants.PAGE_HEADER_BOTTOM_PADDING
+          })
         }
         .width('100%')
         .height(this.getTopToolsContainerHeight())
@@ -683,7 +689,12 @@ export struct TorrentListPage {
                 .height(this.rootTabBarReserveHeight)
             }
             .width('100%')
-            .padding({ left: 20, right: 20, top: 0, bottom: 0 })
+            .padding({
+              left: AppConstants.PAGE_HORIZONTAL_PADDING,
+              right: AppConstants.PAGE_HORIZONTAL_PADDING,
+              top: 0,
+              bottom: 0
+            })
           }
           .scrollBar(BarState.Off)
           .edgeEffect(EdgeEffect.Spring)
@@ -814,7 +825,7 @@ export struct TorrentListPage {
         .fontColor($r('app.color.text_primary'))
     }
     .width('100%')
-    .height(46)
+    .height(AppConstants.PAGE_HEADER_HEIGHT)
     .opacity(this.headerVisible ? 1 : 0)
     .translate({ x: 0, y: this.headerVisible ? 0 : -14 })
     .alignItems(VerticalAlign.Center)
