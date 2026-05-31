@@ -838,11 +838,6 @@ export struct DashboardPage {
   @Builder
   pageBackgroundLayer() {
     Stack() {
-      Image($r('app.media.background'))
-        .width('100%')
-        .height('100%')
-        .objectFit(ImageFit.Cover)
-
       Column() {
         Row()
           .width('100%')
@@ -859,6 +854,9 @@ export struct DashboardPage {
     .width('100%')
     .height('100%')
     .backgroundColor($r('app.color.page_background'))
+    .backgroundImage($r('app.media.background'), ImageRepeat.NoRepeat)
+    .backgroundImageSize(ImageSize.Cover)
+    .backgroundImagePosition(Alignment.Top)
     .hitTestBehavior(HitTestMode.Transparent)
   }
 
