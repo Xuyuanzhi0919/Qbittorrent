@@ -1023,9 +1023,7 @@ export struct DashboardPage {
 
   @Builder
   heroSection() {
-    Stack({ alignContent: Alignment.TopStart }) {
-      this.heroMaskLayer()
-
+    Column() {
       Column({ space: 16 }) {
         if (this.isLoading) {
           Column({ space: 14 }) {
@@ -1129,40 +1127,6 @@ export struct DashboardPage {
       offsetX: 0,
       offsetY: 8
     })
-  }
-
-  @Builder
-  heroMaskLayer() {
-    Stack({ alignContent: Alignment.TopStart }) {
-      Row()
-        .width('100%')
-        .height(96)
-        .linearGradient({
-          angle: 135,
-          colors: [
-            [$r('app.color.card_mask_primary'), 0],
-            [$r('app.color.card_mask_secondary'), 0.55],
-            [Color.Transparent, 1]
-          ]
-        })
-
-      Row()
-        .width(190)
-        .height(190)
-        .backgroundColor($r('app.color.card_mask_secondary'))
-        .borderRadius(999)
-        .position({ x: -82, y: -92 })
-
-      Row()
-        .width('62%')
-        .height(1)
-        .backgroundColor($r('app.color.card_mask_highlight'))
-        .borderRadius(999)
-        .position({ x: 18, y: 18 })
-    }
-    .width('100%')
-    .height('100%')
-    .hitTestBehavior(HitTestMode.Transparent)
   }
 
   @Builder
