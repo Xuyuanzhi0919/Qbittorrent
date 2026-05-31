@@ -809,8 +809,7 @@ export struct DashboardPage {
         Refresh({ refreshing: $$this.isLoading }) {
           Scroll() {
             Column({ space: 12 }) {
-              this.heroSection()
-              this.bentoGrid()
+              this.performanceSection()
 
               this.tasksSection()
               this.globalSpeedLimitCard()
@@ -1054,6 +1053,168 @@ export struct DashboardPage {
   }
 
   @Builder
+  performanceSection() {
+    Column({ space: 18 }) {
+      Row() {
+        Column({ space: 5 }) {
+          Text('实时传输速率')
+            .fontSize(12)
+            .fontWeight(FontWeight.Medium)
+            .fontColor($r('app.color.text_secondary'))
+          if (this.isLoading) {
+            Row()
+              .width(180)
+              .height(38)
+              .backgroundColor($r('app.color.dashboard_border'))
+              .borderRadius(14)
+          } else {
+            Text(this.formatDashboardSpeed(this.getTotalSpeed()))
+              .fontSize(38)
+              .fontWeight(FontWeight.Bold)
+              .letterSpacing(-0.8)
+              .fontColor($r('app.color.text_primary'))
+              .maxLines(1)
+              .textOverflow({ overflow: TextOverflow.Ellipsis })
+          }
+        }
+        .alignItems(HorizontalAlign.Start)
+        .layoutWeight(1)
+
+        Column({ space: 4 }) {
+          Text(this.getStatusSummary())
+            .fontSize(13)
+            .fontWeight(FontWeight.Bold)
+            .fontColor(this.getConnectionColor())
+          Text(`${this.dhtNodes} 节点`)
+            .fontSize(11)
+            .fontWeight(FontWeight.Normal)
+            .fontColor($r('app.color.text_secondary'))
+        }
+        .alignItems(HorizontalAlign.End)
+      }
+      .width('100%')
+      .alignItems(VerticalAlign.Center)
+
+      Row({ space: 8 }) {
+        this.averageSpeedChip()
+        this.peakSpeedChip()
+        this.etaChip()
+      }
+      .width('100%')
+
+      Row()
+        .width('100%')
+        .height(1)
+        .backgroundColor($r('app.color.dashboard_border_soft'))
+
+      Row({ space: 18 }) {
+        this.compactSpeedMetric('下载速度', this.formatDashboardSpeed(this.dlSpeed),
+          this.dlRateLimit > 0 ? `限速 ${this.formatDashboardSpeed(this.dlRateLimit)}` : '不限速',
+          $r('app.color.success_color'))
+        this.compactSpeedMetric('上传速度', this.formatDashboardSpeed(this.ulSpeed),
+          this.ulRateLimit > 0 ? `限速 ${this.formatDashboardSpeed(this.ulRateLimit)}` : '不限速',
+          $r('app.color.warning_color'))
+      }
+      .width('100%')
+
+      Row({ space: 18 }) {
+        this.compactCountMetric('下载任务', `${this.downloadingCount}`, '个任务下载中',
+          $r('app.color.accent_color'))
+        this.compactCountMetric('DHT 节点', `${this.dhtNodes}`,
+          this.dhtNodes > 200 ? '节点健康' : this.dhtNodes > 30 ? '连接中' : '搜索中',
+          $r('app.color.text_secondary'))
+      }
+      .width('100%')
+    }
+    .width('100%')
+    .padding({
+      left: AppConstants.PAGE_HORIZONTAL_PADDING,
+      right: AppConstants.PAGE_HORIZONTAL_PADDING,
+      top: 20,
+      bottom: 18
+    })
+    .backgroundColor($r('app.color.card_background'))
+    .border({ width: 1, color: $r('app.color.dashboard_border_soft') })
+    .borderRadius(28)
+    .shadow({
+      radius: 24,
+      color: $r('app.color.dashboard_shadow'),
+      offsetX: 0,
+      offsetY: 10
+    })
+  }
+
+  @Builder
+  compactSpeedMetric(label: string, value: string, hint: string, accent: ResourceColor) {
+    Column({ space: 8 }) {
+      Row({ space: 6 }) {
+        Circle()
+          .width(7)
+          .height(7)
+          .fill(accent)
+        Text(label)
+          .fontSize(11)
+          .fontWeight(FontWeight.Medium)
+          .fontColor($r('app.color.text_secondary'))
+      }
+      if (this.isLoading) {
+        Row()
+          .width(92)
+          .height(28)
+          .backgroundColor($r('app.color.dashboard_border'))
+          .borderRadius(10)
+      } else {
+        Text(value)
+          .minFontSize(14)
+          .maxFontSize(25)
+          .fontWeight(FontWeight.Bold)
+          .letterSpacing(-0.5)
+          .fontColor($r('app.color.text_primary'))
+          .maxLines(1)
+          .textOverflow({ overflow: TextOverflow.Ellipsis })
+      }
+      Text(hint)
+        .fontSize(11)
+        .fontWeight(FontWeight.Normal)
+        .fontColor($r('app.color.tab_inactive_fg'))
+        .maxLines(1)
+        .textOverflow({ overflow: TextOverflow.Ellipsis })
+    }
+    .layoutWeight(1)
+    .alignItems(HorizontalAlign.Start)
+  }
+
+  @Builder
+  compactCountMetric(label: string, value: string, hint: string, hintColor: ResourceColor) {
+    Column({ space: 6 }) {
+      Text(label)
+        .fontSize(11)
+        .fontWeight(FontWeight.Medium)
+        .fontColor($r('app.color.text_secondary'))
+      if (this.isLoading) {
+        Row()
+          .width(54)
+          .height(26)
+          .backgroundColor($r('app.color.dashboard_border'))
+          .borderRadius(8)
+      } else {
+        Text(value)
+          .fontSize(26)
+          .fontWeight(FontWeight.Bold)
+          .fontColor($r('app.color.text_primary'))
+      }
+      Text(hint)
+        .fontSize(11)
+        .fontWeight(FontWeight.Normal)
+        .fontColor(hintColor)
+        .maxLines(1)
+        .textOverflow({ overflow: TextOverflow.Ellipsis })
+    }
+    .layoutWeight(1)
+    .alignItems(HorizontalAlign.Start)
+  }
+
+  @Builder
   heroSection() {
     Column() {
       Column({ space: 16 }) {
@@ -1174,8 +1335,7 @@ export struct DashboardPage {
     .layoutWeight(1)
     .padding({ left: 10, right: 10, top: 12, bottom: 12 })
     .backgroundColor($r('app.color.dashboard_surface_soft'))
-    .border({ width: 1, color: $r('app.color.dashboard_border_soft') })
-    .borderRadius(18)
+    .borderRadius(14)
     .alignItems(HorizontalAlign.Start)
   }
 
@@ -1197,8 +1357,7 @@ export struct DashboardPage {
     .layoutWeight(1)
     .padding({ left: 10, right: 10, top: 12, bottom: 12 })
     .backgroundColor($r('app.color.dashboard_surface_soft'))
-    .border({ width: 1, color: $r('app.color.dashboard_border_soft') })
-    .borderRadius(18)
+    .borderRadius(14)
     .alignItems(HorizontalAlign.Start)
   }
 
@@ -1220,8 +1379,7 @@ export struct DashboardPage {
     .layoutWeight(1)
     .padding({ left: 10, right: 10, top: 12, bottom: 12 })
     .backgroundColor($r('app.color.dashboard_surface_soft'))
-    .border({ width: 1, color: $r('app.color.dashboard_border_soft') })
-    .borderRadius(18)
+    .borderRadius(14)
     .alignItems(HorizontalAlign.Start)
   }
 
@@ -1431,10 +1589,7 @@ export struct DashboardPage {
       }
     }
     .width('100%')
-    .padding(12)
-    .backgroundColor($r('app.color.card_background'))
-    .border({ width: 1, color: $r('app.color.dashboard_border') })
-    .borderRadius(24)
+    .padding({ left: 2, right: 2, top: 6, bottom: 2 })
   }
 
   @Builder
@@ -1517,8 +1672,8 @@ export struct DashboardPage {
     }
     .width('100%')
     .padding(14)
-    .backgroundColor($r('app.color.glass_bg_card'))
-    .borderRadius(20)
+    .backgroundColor($r('app.color.dashboard_surface_soft'))
+    .borderRadius(18)
     .alignItems(HorizontalAlign.Start)
   }
 
@@ -1556,7 +1711,8 @@ export struct DashboardPage {
     }
     .width('100%')
     .padding({ left: 12, right: 12, top: 10, bottom: 10 })
-    .backgroundColor($r('app.color.glass_bg_elevated'))
+    .backgroundColor($r('app.color.card_background'))
+    .border({ width: 1, color: $r('app.color.dashboard_border_soft') })
     .borderRadius(18)
     .alignItems(VerticalAlign.Top)
     .onClick(() => {
@@ -1693,9 +1849,7 @@ export struct DashboardPage {
     }
     .width('100%')
     .padding({ left: 14, right: 14, top: 12, bottom: 12 })
-    .backgroundColor($r('app.color.card_background'))
-    .border({ width: 1, color: $r('app.color.dashboard_border') })
-    .borderRadius(20)
+    .backgroundColor(Color.Transparent)
     .alignItems(VerticalAlign.Center)
     .onClick(() => {
       this.openGlobalLimitSheet();
