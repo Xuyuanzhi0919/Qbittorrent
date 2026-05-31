@@ -749,13 +749,14 @@ export struct DashboardPage {
     }
     .width('100%')
     .padding({ left: 12, right: 12, top: 10, bottom: 10 })
-    .backgroundColor($r('app.color.card_background'))
+    .backgroundColor($r('app.color.glass_bg_card'))
+    .backdropBlur(20)
     .border({
       width: 1,
-      color: $r('app.color.dashboard_border')
+      color: $r('app.color.glass_border')
     })
     .borderRadius(16)
-    .alignItems(VerticalAlign.Top)
+    .alignItems(VerticalAlign.Center)
   }
 
   @Builder
@@ -941,7 +942,7 @@ export struct DashboardPage {
     .backgroundColor($r('app.color.glass_bg_card'))
     .backdropBlur(28)
     .border({ width: 1, color: $r('app.color.glass_border') })
-    .borderRadius(28)
+    .borderRadius(24)
     .clip(true)
     .shadow({
       radius: 20,
@@ -1062,7 +1063,7 @@ export struct DashboardPage {
         .backgroundColor($r('app.color.glass_bg_card'))
         .backdropBlur(24)
         .border({ width: 1, color: $r('app.color.glass_border') })
-        .borderRadius(22)
+        .borderRadius(20)
 
         Column({ space: 10 }) {
           Row({ space: 6 }) {
@@ -1104,7 +1105,7 @@ export struct DashboardPage {
         .backgroundColor($r('app.color.glass_bg_card'))
         .backdropBlur(24)
         .border({ width: 1, color: $r('app.color.glass_border') })
-        .borderRadius(22)
+        .borderRadius(20)
       }
       .width('100%')
 
@@ -1140,7 +1141,7 @@ export struct DashboardPage {
         .backgroundColor($r('app.color.glass_bg_card'))
         .backdropBlur(24)
         .border({ width: 1, color: $r('app.color.glass_border') })
-        .borderRadius(22)
+        .borderRadius(20)
 
         Column({ space: 8 }) {
           Text('DHT 节点')
@@ -1172,7 +1173,7 @@ export struct DashboardPage {
         .backgroundColor($r('app.color.glass_bg_card'))
         .backdropBlur(24)
         .border({ width: 1, color: $r('app.color.glass_border') })
-        .borderRadius(22)
+        .borderRadius(20)
       }
       .width('100%')
     }

@@ -309,7 +309,7 @@ export struct SettingsPage {
         .alignItems(VerticalAlign.Center)
         .backgroundColor($r('app.color.dashboard_surface_info'))
         .border({ width: 1, color: $r('app.color.download_selected_border') })
-        .borderRadius(20)
+        .borderRadius(18)
 
         Column({ space: 5 }) {
           Text(this.guestMode ? '示例体验账户' : 'qBittorrent 账户')
@@ -368,7 +368,7 @@ export struct SettingsPage {
     .backgroundColor($r('app.color.glass_bg_card'))
     .backdropBlur(24)
     .border({ width: 1, color: $r('app.color.glass_border') })
-    .borderRadius(28)
+    .borderRadius(24)
     .shadow({
       radius: 20,
       color: '#0F172A14',

@@ -803,7 +803,7 @@ export struct TorrentListPage {
   headerSection() {
     Row() {
       Text('下载管理')
-        .fontSize(30)
+        .fontSize(28)
         .fontWeight(FontWeight.Bold)
         .letterSpacing(-0.5)
         .fontColor($r('app.color.text_primary'))
