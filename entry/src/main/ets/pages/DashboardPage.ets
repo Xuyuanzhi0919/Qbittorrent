@@ -816,6 +816,12 @@ export struct DashboardPage {
       .onRefreshing(() => {
         this.refreshData(true);
       })
+      .width('100%')
+      .height('100%')
+      .backgroundColor(Color.Transparent)
+      .backgroundImage($r('app.media.background'), ImageRepeat.NoRepeat)
+      .backgroundImageSize(ImageSize.Cover)
+      .backgroundImagePosition(Alignment.Top)
 
       if (this.pendingDeleteHash.length > 0) {
         this.deleteConfirmDialog()

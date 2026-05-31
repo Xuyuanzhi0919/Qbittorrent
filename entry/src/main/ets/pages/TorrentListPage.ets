@@ -702,9 +702,16 @@ export struct TorrentListPage {
         .onRefreshing(() => {
           this.refreshData(true);
         })
+        .backgroundImage($r('app.media.background'), ImageRepeat.NoRepeat)
+        .backgroundImageSize(ImageSize.Cover)
+        .backgroundImagePosition(Alignment.Top)
       }
       .width('100%')
       .height('100%')
+      .backgroundColor(Color.Transparent)
+      .backgroundImage($r('app.media.background'), ImageRepeat.NoRepeat)
+      .backgroundImageSize(ImageSize.Cover)
+      .backgroundImagePosition(Alignment.Top)
       .blur(this.showBulkActionSheet || this.showCategoryMgmtSheet || this.showSetCategorySheet ? 16 : 0)
       .animation({ duration: 220, curve: Curve.EaseOut })
 

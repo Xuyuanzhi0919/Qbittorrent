@@ -220,6 +220,9 @@ export struct SettingsPage {
       .width('100%')
       .height('100%')
       .backgroundColor(Color.Transparent)
+      .backgroundImage($r('app.media.background'), ImageRepeat.NoRepeat)
+      .backgroundImageSize(ImageSize.Cover)
+      .backgroundImagePosition(Alignment.Top)
       .blur(this.showDisconnectConfirm || this.showClearConfigConfirm ? 16 : 0)
       .animation({ duration: 220, curve: Curve.EaseOut })
 
