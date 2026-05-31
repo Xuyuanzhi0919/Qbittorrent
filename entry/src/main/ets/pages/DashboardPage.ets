@@ -1115,16 +1115,11 @@ export struct DashboardPage {
         }
       }
       .width('100%')
-      .padding({ left: 18, right: 18, top: 18, bottom: this.isLoading ? 18 : 12 })
-
-      if (!this.isLoading) {
-        WaveCanvas()
-      }
+      .padding(18)
     }
     .width('100%')
-    .backgroundColor($r('app.color.glass_bg_card'))
-    .backdropBlur(28)
-    .border({ width: 1, color: $r('app.color.glass_border') })
+    .backgroundColor($r('app.color.card_background'))
+    .border({ width: 1, color: $r('app.color.dashboard_border') })
     .borderRadius(24)
     .clip(true)
     .shadow({
@@ -1152,7 +1147,8 @@ export struct DashboardPage {
     }
     .layoutWeight(1)
     .padding({ left: 10, right: 10, top: 12, bottom: 12 })
-    .backgroundColor($r('app.color.glass_bg_chip'))
+    .backgroundColor($r('app.color.dashboard_surface_soft'))
+    .border({ width: 1, color: $r('app.color.dashboard_border_soft') })
     .borderRadius(18)
     .alignItems(HorizontalAlign.Start)
   }
@@ -1174,7 +1170,8 @@ export struct DashboardPage {
     }
     .layoutWeight(1)
     .padding({ left: 10, right: 10, top: 12, bottom: 12 })
-    .backgroundColor($r('app.color.glass_bg_chip'))
+    .backgroundColor($r('app.color.dashboard_surface_soft'))
+    .border({ width: 1, color: $r('app.color.dashboard_border_soft') })
     .borderRadius(18)
     .alignItems(HorizontalAlign.Start)
   }
@@ -1196,7 +1193,8 @@ export struct DashboardPage {
     }
     .layoutWeight(1)
     .padding({ left: 10, right: 10, top: 12, bottom: 12 })
-    .backgroundColor($r('app.color.glass_bg_chip'))
+    .backgroundColor($r('app.color.dashboard_surface_soft'))
+    .border({ width: 1, color: $r('app.color.dashboard_border_soft') })
     .borderRadius(18)
     .alignItems(HorizontalAlign.Start)
   }
@@ -1408,9 +1406,8 @@ export struct DashboardPage {
     }
     .width('100%')
     .padding(12)
-    .backgroundColor($r('app.color.glass_bg_card'))
-    .backdropBlur(24)
-    .border({ width: 1, color: $r('app.color.glass_border') })
+    .backgroundColor($r('app.color.card_background'))
+    .border({ width: 1, color: $r('app.color.dashboard_border') })
     .borderRadius(24)
   }
 
@@ -1670,9 +1667,8 @@ export struct DashboardPage {
     }
     .width('100%')
     .padding({ left: 14, right: 14, top: 12, bottom: 12 })
-    .backgroundColor($r('app.color.glass_bg_card'))
-    .backdropBlur(24)
-    .border({ width: 1, color: $r('app.color.glass_border') })
+    .backgroundColor($r('app.color.card_background'))
+    .border({ width: 1, color: $r('app.color.dashboard_border') })
     .borderRadius(20)
     .alignItems(VerticalAlign.Center)
     .onClick(() => {

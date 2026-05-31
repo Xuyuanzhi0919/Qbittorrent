@@ -70,11 +70,11 @@
     { "name": "download_warn_border", "value": "#6B3434" },
     { "name": "download_pause_bg", "value": "#3D2D1B" },
     { "name": "download_pause_fg", "value": "#FFB74D" },
-    { "name": "page_gradient_top", "value": "#13322A" },
-    { "name": "page_gradient_mid", "value": "#172554" },
-    { "name": "glass_bg_card", "value": "#1FFFFFFF" },
-    { "name": "glass_bg_chip", "value": "#2EFFFFFF" },
-    { "name": "glass_bg_elevated", "value": "#3DFFFFFF" },
-    { "name": "glass_border", "value": "#33FFFFFF" }
+    { "name": "page_gradient_top", "value": "#111827" },
+    { "name": "page_gradient_mid", "value": "#111827" },
+    { "name": "glass_bg_card", "value": "#18202A" },
+    { "name": "glass_bg_chip", "value": "#1E293B" },
+    { "name": "glass_bg_elevated", "value": "#1E293B" },
+    { "name": "glass_border", "value": "#334155" }
   ]
 }
