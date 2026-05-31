@@ -698,11 +698,6 @@ export struct DashboardPage {
 
             this.tasksSection()
             this.globalSpeedLimitCard()
-
-            this.primaryActionChip('添加下载任务', () => {
-              AppService.pushPage('AddTorrent');
-            })
-
           }
           .width('100%')
           .padding({ left: 20, right: 20, top: 62, bottom: this.rootTabBarReserveHeight + 12 })
@@ -724,6 +719,9 @@ export struct DashboardPage {
       }
       if (this.showGlobalLimitSheet) {
         this.globalLimitSheet()
+      }
+      if (this.pendingDeleteHash.length === 0 && !this.showGlobalLimitSheet) {
+        this.newTaskFloatingButton()
       }
     }
     .width('100%')
@@ -824,26 +822,6 @@ export struct DashboardPage {
 
       Blank()
 
-      Row({ space: 6 }) {
-        SymbolGlyph($r('sys.symbol.plus'))
-          .fontSize(14)
-          .fontColor([$r('app.color.dashboard_primary_action_fg')])
-        Text('新建')
-          .fontSize(12)
-          .fontWeight(FontWeight.Bold)
-          .fontColor($r('app.color.dashboard_primary_action_fg'))
-      }
-      .height(36)
-      .padding({ left: 12, right: 12 })
-      .justifyContent(FlexAlign.Center)
-      .alignItems(VerticalAlign.Center)
-      .backgroundColor($r('app.color.dashboard_primary_action_bg'))
-      .borderRadius(999)
-      .margin({ right: 8 })
-      .onClick(() => {
-        AppService.pushPage('AddTorrent');
-      })
-
       Row({ space: 8 }) {
         Circle()
           .width(8)
@@ -862,6 +840,34 @@ export struct DashboardPage {
     }
     .width('100%')
     .alignItems(VerticalAlign.Center)
+  }
+
+  @Builder
+  newTaskFloatingButton() {
+    Column() {
+      Blank()
+      Row() {
+        SymbolGlyph($r('sys.symbol.plus'))
+          .fontSize(24)
+          .fontColor([$r('app.color.dashboard_primary_action_fg')])
+      }
+      .width(58)
+      .height(58)
+      .justifyContent(FlexAlign.Center)
+      .alignItems(VerticalAlign.Center)
+      .backgroundColor($r('app.color.dashboard_primary_action_bg'))
+      .borderRadius(999)
+      .shadow({ radius: 24, color: '#0F172A33', offsetX: 0, offsetY: 8 })
+      .margin({ right: 20, bottom: this.rootTabBarReserveHeight + 16 })
+      .onClick(() => {
+        AppService.pushPage('AddTorrent');
+      })
+    }
+    .width('100%')
+    .height('100%')
+    .alignItems(HorizontalAlign.End)
+    .justifyContent(FlexAlign.End)
+    .hitTestBehavior(HitTestMode.Transparent)
   }
 
   @Builder
