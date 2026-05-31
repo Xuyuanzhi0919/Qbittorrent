@@ -846,18 +846,27 @@ export struct DashboardPage {
   newTaskFloatingButton() {
     Column() {
       Blank()
-      Row() {
+      Row({ space: 7 }) {
         SymbolGlyph($r('sys.symbol.plus'))
-          .fontSize(24)
-          .fontColor([$r('app.color.dashboard_primary_action_fg')])
+          .fontSize(17)
+          .fontColor([$r('app.color.accent_color')])
+        Text('新建')
+          .fontSize(13)
+          .fontWeight(FontWeight.Bold)
+          .fontColor($r('app.color.accent_color'))
       }
-      .width(58)
-      .height(58)
+      .height(48)
+      .padding({ left: 16, right: 18 })
       .justifyContent(FlexAlign.Center)
       .alignItems(VerticalAlign.Center)
-      .backgroundColor($r('app.color.dashboard_primary_action_bg'))
+      .backgroundColor($r('app.color.glass_bg_elevated'))
+      .backdropBlur(24)
+      .border({
+        width: 1,
+        color: $r('app.color.glass_border')
+      })
       .borderRadius(999)
-      .shadow({ radius: 24, color: '#0F172A33', offsetX: 0, offsetY: 8 })
+      .shadow({ radius: 18, color: '#2563EB24', offsetX: 0, offsetY: 6 })
       .margin({ right: 20, bottom: this.rootTabBarReserveHeight + 16 })
       .onClick(() => {
         AppService.pushPage('AddTorrent');
