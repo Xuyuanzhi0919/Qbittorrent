@@ -8,11 +8,13 @@ import { TorrentTracker } from '../model/TorrentTracker';
 import { TorrentPeer } from '../model/TorrentPeer';
 import { TorrentProperties } from '../model/TorrentProperties';
 import { TorrentPeersSync } from '../model/TorrentPeersSync';
+import { SyncMainData } from '../model/SyncMainData';
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { AppConstants } from '../common/constants/AppConstants';
 
 export class QbittorrentApi {
   private client: HttpClient;
+  private webApiVersion: string = '';
 
   constructor(useSharedClient: boolean = true) {
     this.client = useSharedClient ? HttpClient.getInstance() : new HttpClient();
@@ -21,6 +23,7 @@ export class QbittorrentApi {
   async login(baseUrl: string, username: string, password: string): Promise<ApiResult<string>> {
     this.client.setBaseUrl(baseUrl);
     this.client.clearSid();
+    this.webApiVersion = '';
     const params: Record<string, string> = {
       'username': username,
       'password': password,
@@ -41,11 +44,20 @@ export class QbittorrentApi {
   async logout(): Promise<ApiResult<string>> {
     const result: ApiResult<string> = await this.client.post(QbiApiPaths.AUTH_LOGOUT, {});
     this.client.clearSid();
+    this.webApiVersion = '';
     return result;
   }
 
   async getVersion(): Promise<ApiResult<string>> {
     return await this.client.get(QbiApiPaths.APP_VERSION);
+  }
+
+  async getWebApiVersion(): Promise<ApiResult<string>> {
+    const result: ApiResult<string> = await this.client.get(QbiApiPaths.APP_WEB_API_VERSION);
+    if (result.success) {
+      this.webApiVersion = (result.data as string).trim();
+    }
+    return result;
   }
 
   async getTransferInfo(): Promise<ApiResult<TransferInfo>> {
@@ -74,7 +86,8 @@ export class QbittorrentApi {
     let path: string = QbiApiPaths.TORRENTS_INFO;
     const params: string[] = [];
     if (filter) {
-      params.push(`filter=${encodeURIComponent(filter)}`);
+      const normalizedFilter: string = await this.normalizeTorrentFilter(filter);
+      params.push(`filter=${encodeURIComponent(normalizedFilter)}`);
     }
     if (sort) {
       params.push(`sort=${encodeURIComponent(sort)}`);
@@ -199,6 +212,21 @@ export class QbittorrentApi {
     }
   }
 
+  async getMainData(rid: number = 0): Promise<ApiResult<SyncMainData>> {
+    const path: string = `${QbiApiPaths.SYNC_MAIN_DATA}?rid=${rid}`;
+    const result: ApiResult<string> = await this.client.get(path);
+    if (!result.success) {
+      return ApiResult.fail<SyncMainData>(result.error, result.statusCode);
+    }
+    try {
+      const parsed: Record<string, Object> = JSON.parse(result.data as string) as Record<string, Object>;
+      return ApiResult.ok<SyncMainData>(SyncMainData.fromJson(parsed));
+    } catch (err) {
+      hilog.error(AppConstants.LOG_DOMAIN, AppConstants.LOG_TAG, `MainData parse error: ${JSON.stringify(err)}`);
+      return ApiResult.fail<SyncMainData>('解析同步数据失败');
+    }
+  }
+
   async addTorrent(urls: string, savePath?: string, category?: string, tags?: string, paused?: boolean): Promise<ApiResult<string>> {
     const params: Record<string, string> = {
       'urls': urls,
@@ -226,14 +254,24 @@ export class QbittorrentApi {
     const params: Record<string, string> = {
       'hashes': hashes.join('|'),
     };
-    return await this.client.post(QbiApiPaths.TORRENT_PAUSE, params);
+    const primaryPath: string = await this.getPausePath();
+    const result: ApiResult<string> = await this.client.post(primaryPath, params);
+    if (!result.success && this.shouldTryLegacyTorrentStatePath(primaryPath, result.statusCode)) {
+      return await this.client.post(QbiApiPaths.TORRENT_PAUSE_LEGACY, params);
+    }
+    return result;
   }
 
   async resumeTorrents(hashes: string[]): Promise<ApiResult<string>> {
     const params: Record<string, string> = {
       'hashes': hashes.join('|'),
     };
-    return await this.client.post(QbiApiPaths.TORRENT_RESUME, params);
+    const primaryPath: string = await this.getResumePath();
+    const result: ApiResult<string> = await this.client.post(primaryPath, params);
+    if (!result.success && this.shouldTryLegacyTorrentStatePath(primaryPath, result.statusCode)) {
+      return await this.client.post(QbiApiPaths.TORRENT_RESUME_LEGACY, params);
+    }
+    return result;
   }
 
   async reannounceTorrents(hashes: string[]): Promise<ApiResult<string>> {
@@ -241,6 +279,13 @@ export class QbittorrentApi {
       'hashes': hashes.join('|'),
     };
     return await this.client.post(QbiApiPaths.TORRENT_REANNOUNCE, params);
+  }
+
+  async recheckTorrents(hashes: string[]): Promise<ApiResult<string>> {
+    const params: Record<string, string> = {
+      'hashes': hashes.join('|'),
+    };
+    return await this.client.post(QbiApiPaths.TORRENT_RECHECK, params);
   }
 
   async deleteTorrents(hashes: string[], deleteFiles: boolean): Promise<ApiResult<string>> {
@@ -288,6 +333,31 @@ export class QbittorrentApi {
     return await this.client.post(QbiApiPaths.TORRENT_SET_UL_LIMIT, params);
   }
 
+  async setShareLimits(hashes: string[], ratioLimit: number, seedingTimeLimit: number): Promise<ApiResult<string>> {
+    const params: Record<string, string> = {
+      'hashes': hashes.join('|'),
+      'ratioLimit': ratioLimit.toString(),
+      'seedingTimeLimit': seedingTimeLimit.toString(),
+    };
+    return await this.client.post(QbiApiPaths.TORRENT_SET_SHARE_LIMITS, params);
+  }
+
+  async setLocation(hashes: string[], location: string): Promise<ApiResult<string>> {
+    const params: Record<string, string> = {
+      'hashes': hashes.join('|'),
+      'location': location,
+    };
+    return await this.client.post(QbiApiPaths.TORRENT_SET_LOCATION, params);
+  }
+
+  async renameTorrent(hash: string, name: string): Promise<ApiResult<string>> {
+    const params: Record<string, string> = {
+      'hash': hash,
+      'name': name,
+    };
+    return await this.client.post(QbiApiPaths.TORRENT_RENAME, params);
+  }
+
   async getCategories(): Promise<ApiResult<string[]>> {
     const result: ApiResult<string> = await this.client.get(QbiApiPaths.TORRENTS_CATEGORIES);
     if (!result.success) {
@@ -321,6 +391,55 @@ export class QbittorrentApi {
     return await this.client.post(QbiApiPaths.TORRENT_SET_CATEGORY, params);
   }
 
+  async getTags(): Promise<ApiResult<string[]>> {
+    const result: ApiResult<string> = await this.client.get(QbiApiPaths.TORRENTS_TAGS);
+    if (!result.success) {
+      return ApiResult.fail<string[]>(result.error, result.statusCode);
+    }
+    try {
+      const parsedArray: Object[] = JSON.parse(result.data as string) as Object[];
+      const tags: string[] = [];
+      for (const item of parsedArray) {
+        if (typeof item === 'string') {
+          tags.push(item as string);
+        }
+      }
+      return ApiResult.ok<string[]>(tags);
+    } catch (err) {
+      return ApiResult.fail<string[]>('解析标签列表失败');
+    }
+  }
+
+  async createTags(tags: string[]): Promise<ApiResult<string>> {
+    const params: Record<string, string> = {
+      'tags': tags.join(','),
+    };
+    return await this.client.post(QbiApiPaths.TORRENT_CREATE_TAGS, params);
+  }
+
+  async deleteTags(tags: string[]): Promise<ApiResult<string>> {
+    const params: Record<string, string> = {
+      'tags': tags.join(','),
+    };
+    return await this.client.post(QbiApiPaths.TORRENT_DELETE_TAGS, params);
+  }
+
+  async addTags(hashes: string[], tags: string[]): Promise<ApiResult<string>> {
+    const params: Record<string, string> = {
+      'hashes': hashes.join('|'),
+      'tags': tags.join(','),
+    };
+    return await this.client.post(QbiApiPaths.TORRENT_ADD_TAGS, params);
+  }
+
+  async removeTags(hashes: string[], tags: string[]): Promise<ApiResult<string>> {
+    const params: Record<string, string> = {
+      'hashes': hashes.join('|'),
+      'tags': tags.join(','),
+    };
+    return await this.client.post(QbiApiPaths.TORRENT_REMOVE_TAGS, params);
+  }
+
   async addTorrentFile(filePath: string, fileName: string, savePath?: string, category?: string, tags?: string, paused?: boolean): Promise<ApiResult<string>> {
     const params: Record<string, string> = {};
     if (savePath) {
@@ -340,5 +459,73 @@ export class QbittorrentApi {
       return ApiResult.ok<string>('添加成功');
     }
     return result;
+  }
+
+  private async normalizeTorrentFilter(filter: string): Promise<string> {
+    if (await this.isModernStateApi()) {
+      if (filter === 'paused') {
+        return 'stopped';
+      }
+      if (filter === 'resumed') {
+        return 'running';
+      }
+    } else {
+      if (filter === 'stopped') {
+        return 'paused';
+      }
+      if (filter === 'running') {
+        return 'resumed';
+      }
+    }
+    return filter;
+  }
+
+  private async getPausePath(): Promise<string> {
+    return await this.isModernStateApi() ? QbiApiPaths.TORRENT_PAUSE : QbiApiPaths.TORRENT_PAUSE_LEGACY;
+  }
+
+  private async getResumePath(): Promise<string> {
+    return await this.isModernStateApi() ? QbiApiPaths.TORRENT_RESUME : QbiApiPaths.TORRENT_RESUME_LEGACY;
+  }
+
+  private shouldTryLegacyTorrentStatePath(path: string, statusCode: number): boolean {
+    return path !== QbiApiPaths.TORRENT_PAUSE_LEGACY &&
+      path !== QbiApiPaths.TORRENT_RESUME_LEGACY &&
+      (statusCode === 404 || statusCode === 405 || statusCode === 0);
+  }
+
+  private async isModernStateApi(): Promise<boolean> {
+    if (this.webApiVersion.length === 0) {
+      await this.getWebApiVersion();
+    }
+    if (this.webApiVersion.length === 0) {
+      return true;
+    }
+    return this.compareVersion(this.webApiVersion, '2.11.0') >= 0;
+  }
+
+  private compareVersion(left: string, right: string): number {
+    const leftParts: string[] = left.split('.');
+    const rightParts: string[] = right.split('.');
+    const maxLen: number = Math.max(leftParts.length, rightParts.length);
+    for (let i: number = 0; i < maxLen; i++) {
+      const leftValue: number = this.parseVersionPart(i < leftParts.length ? leftParts[i] : '0');
+      const rightValue: number = this.parseVersionPart(i < rightParts.length ? rightParts[i] : '0');
+      if (leftValue > rightValue) {
+        return 1;
+      }
+      if (leftValue < rightValue) {
+        return -1;
+      }
+    }
+    return 0;
+  }
+
+  private parseVersionPart(value: string): number {
+    const parsed: number = Number(value);
+    if (parsed !== parsed || parsed < 0) {
+      return 0;
+    }
+    return parsed;
   }
 }

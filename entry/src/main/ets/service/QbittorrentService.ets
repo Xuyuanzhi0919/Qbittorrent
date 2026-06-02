@@ -6,6 +6,7 @@ import { TorrentTracker } from '../model/TorrentTracker';
 import { TorrentPeer } from '../model/TorrentPeer';
 import { TorrentProperties } from '../model/TorrentProperties';
 import { TorrentPeersSync } from '../model/TorrentPeersSync';
+import { SyncMainData } from '../model/SyncMainData';
 import { ApiResult } from '../model/ApiResult';
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { AppConstants } from '../common/constants/AppConstants';
@@ -25,6 +26,9 @@ export class QbittorrentService {
   private pollingTimer: number = -1;
   private prevDownloadingHashes: string[] = [];
   private notifiedCompletedHashes: string[] = [];
+  private mainDataRid: number = 0;
+  private syncedTorrents: Record<string, TorrentInfo> = {};
+  private lastSyncedTransferInfo: TransferInfo | null = null;
 
   constructor(connectionManager: ConnectionManager) {
     this.connectionManager = connectionManager;
@@ -57,11 +61,23 @@ export class QbittorrentService {
   async fetchTorrentList(filter?: string, sort?: string, hashes?: string): Promise<TorrentInfo[]> {
     if (!this.connectionManager.isConnected) {
       this.prevDownloadingHashes = [];
+      this.resetSyncCache();
       return [];
+    }
+    if (filter === undefined && hashes === undefined) {
+      const synced: TorrentInfo[] | null = await this.fetchSyncedTorrentList();
+      if (synced !== null) {
+        const sortedSynced: TorrentInfo[] = this.sortTorrents(synced, sort);
+        this.checkAndNotifyCompletions(sortedSynced);
+        return sortedSynced;
+      }
     }
     const result: ApiResult<TorrentInfo[]> = await this.getApi().getTorrentList(filter, sort, undefined, hashes);
     if (result.success) {
       const torrents: TorrentInfo[] = result.data as TorrentInfo[];
+      if (filter === undefined && sort === undefined && hashes === undefined) {
+        this.rebuildSyncCache(torrents);
+      }
       if (hashes === undefined && filter === undefined) {
         this.checkAndNotifyCompletions(torrents);
       }
@@ -69,6 +85,52 @@ export class QbittorrentService {
     }
     hilog.error(AppConstants.LOG_DOMAIN, AppConstants.LOG_TAG, `fetchTorrentList failed: ${result.error}`);
     return [];
+  }
+
+  async fetchSyncedTorrentList(): Promise<TorrentInfo[] | null> {
+    if (!this.connectionManager.isConnected) {
+      this.resetSyncCache();
+      return [];
+    }
+    const result: ApiResult<SyncMainData> = await this.getApi().getMainData(this.mainDataRid);
+    if (!result.success || result.data === null) {
+      hilog.warn(AppConstants.LOG_DOMAIN, AppConstants.LOG_TAG, `sync/maindata failed: ${result.error}`);
+      return null;
+    }
+
+    const data: SyncMainData = result.data as SyncMainData;
+    this.mainDataRid = data.rid;
+    if (data.server_state !== null) {
+      this.lastSyncedTransferInfo = data.server_state;
+    }
+    if (data.full_update) {
+      this.syncedTorrents = {};
+    }
+
+    const torrentHashes: string[] = Object.keys(data.torrents);
+    for (const hash of torrentHashes) {
+      const patch: Record<string, Object> = data.torrents[hash];
+      let torrent: TorrentInfo | undefined = this.syncedTorrents[hash];
+      if (torrent === undefined) {
+        torrent = new TorrentInfo();
+        torrent.hash = hash;
+      }
+      torrent.applyJson(patch);
+      if (torrent.hash.length === 0) {
+        torrent.hash = hash;
+      }
+      this.syncedTorrents[hash] = torrent;
+    }
+
+    for (const hash of data.torrents_removed) {
+      this.removeSyncedTorrent(hash);
+    }
+
+    return this.getSyncedTorrentArray();
+  }
+
+  getLastSyncedTransferInfo(): TransferInfo | null {
+    return this.lastSyncedTransferInfo;
   }
 
   private checkAndNotifyCompletions(torrents: TorrentInfo[]): void {
@@ -210,6 +272,14 @@ export class QbittorrentService {
     return result.success;
   }
 
+  async recheckTorrents(hashes: string[]): Promise<boolean> {
+    if (!this.connectionManager.isConnected) {
+      return false;
+    }
+    const result: ApiResult<string> = await this.getApi().recheckTorrents(hashes);
+    return result.success;
+  }
+
   async deleteTorrents(hashes: string[], deleteFiles: boolean): Promise<boolean> {
     if (!this.connectionManager.isConnected) {
       return false;
@@ -258,6 +328,30 @@ export class QbittorrentService {
     return result.success;
   }
 
+  async setShareLimits(hashes: string[], ratioLimit: number, seedingTimeLimit: number): Promise<boolean> {
+    if (!this.connectionManager.isConnected) {
+      return false;
+    }
+    const result: ApiResult<string> = await this.getApi().setShareLimits(hashes, ratioLimit, seedingTimeLimit);
+    return result.success;
+  }
+
+  async setLocation(hashes: string[], location: string): Promise<boolean> {
+    if (!this.connectionManager.isConnected) {
+      return false;
+    }
+    const result: ApiResult<string> = await this.getApi().setLocation(hashes, location);
+    return result.success;
+  }
+
+  async renameTorrent(hash: string, name: string): Promise<boolean> {
+    if (!this.connectionManager.isConnected) {
+      return false;
+    }
+    const result: ApiResult<string> = await this.getApi().renameTorrent(hash, name);
+    return result.success;
+  }
+
   async fetchCategories(): Promise<string[]> {
     if (!this.connectionManager.isConnected) {
       return [];
@@ -293,6 +387,49 @@ export class QbittorrentService {
     return result.success;
   }
 
+  async fetchTags(): Promise<string[]> {
+    if (!this.connectionManager.isConnected) {
+      return [];
+    }
+    const result: ApiResult<string[]> = await this.getApi().getTags();
+    if (result.success) {
+      return result.data as string[];
+    }
+    return [];
+  }
+
+  async createTags(tags: string[]): Promise<boolean> {
+    if (!this.connectionManager.isConnected) {
+      return false;
+    }
+    const result: ApiResult<string> = await this.getApi().createTags(tags);
+    return result.success;
+  }
+
+  async deleteTags(tags: string[]): Promise<boolean> {
+    if (!this.connectionManager.isConnected) {
+      return false;
+    }
+    const result: ApiResult<string> = await this.getApi().deleteTags(tags);
+    return result.success;
+  }
+
+  async addTags(hashes: string[], tags: string[]): Promise<boolean> {
+    if (!this.connectionManager.isConnected) {
+      return false;
+    }
+    const result: ApiResult<string> = await this.getApi().addTags(hashes, tags);
+    return result.success;
+  }
+
+  async removeTags(hashes: string[], tags: string[]): Promise<boolean> {
+    if (!this.connectionManager.isConnected) {
+      return false;
+    }
+    const result: ApiResult<string> = await this.getApi().removeTags(hashes, tags);
+    return result.success;
+  }
+
   async addTorrentFile(filePath: string, fileName: string, savePath?: string, category?: string, tags?: string, paused?: boolean): Promise<boolean> {
     if (!this.connectionManager.isConnected) {
       return false;
@@ -312,6 +449,17 @@ export class QbittorrentService {
     return '';
   }
 
+  async getWebApiVersion(): Promise<string> {
+    if (!this.connectionManager.isConnected) {
+      return '';
+    }
+    const result: ApiResult<string> = await this.getApi().getWebApiVersion();
+    if (result.success) {
+      return result.data as string;
+    }
+    return '';
+  }
+
   startPolling(intervalMs: number, callback: () => void): void {
     this.stopPolling();
     this.pollingTimer = setInterval(callback, intervalMs);
@@ -322,5 +470,78 @@ export class QbittorrentService {
       clearInterval(this.pollingTimer);
       this.pollingTimer = -1;
     }
+  }
+
+  private rebuildSyncCache(torrents: TorrentInfo[]): void {
+    this.syncedTorrents = {};
+    for (const torrent of torrents) {
+      if (torrent.hash.length > 0) {
+        this.syncedTorrents[torrent.hash] = TorrentInfo.copyFrom(torrent);
+      }
+    }
+  }
+
+  private getSyncedTorrentArray(): TorrentInfo[] {
+    const torrents: TorrentInfo[] = [];
+    const hashes: string[] = Object.keys(this.syncedTorrents);
+    for (const hash of hashes) {
+      torrents.push(TorrentInfo.copyFrom(this.syncedTorrents[hash]));
+    }
+    return torrents;
+  }
+
+  private sortTorrents(torrents: TorrentInfo[], sort?: string): TorrentInfo[] {
+    if (sort === undefined || sort.length === 0) {
+      return torrents;
+    }
+    const sorted: TorrentInfo[] = torrents.slice();
+    sorted.sort((a: TorrentInfo, b: TorrentInfo) => {
+      const left: number = this.getTorrentSortValue(a, sort);
+      const right: number = this.getTorrentSortValue(b, sort);
+      return right - left;
+    });
+    return sorted;
+  }
+
+  private getTorrentSortValue(torrent: TorrentInfo, sort: string): number {
+    if (sort === 'dlspeed') {
+      return torrent.dlspeed;
+    }
+    if (sort === 'added_on') {
+      return torrent.added_on;
+    }
+    if (sort === 'eta') {
+      return torrent.eta > 0 ? 8640000 - Math.min(torrent.eta, 8640000) : 0;
+    }
+    if (sort === 'size') {
+      return torrent.size;
+    }
+    if (sort === 'upspeed') {
+      return torrent.upspeed;
+    }
+    if (sort === 'ratio') {
+      return torrent.ratio;
+    }
+    if (sort === 'progress') {
+      return torrent.progress;
+    }
+    return 0;
+  }
+
+  private resetSyncCache(): void {
+    this.mainDataRid = 0;
+    this.syncedTorrents = {};
+    this.lastSyncedTransferInfo = null;
+  }
+
+  private removeSyncedTorrent(removedHash: string): void {
+    const next: Record<string, TorrentInfo> = {};
+    const hashes: string[] = Object.keys(this.syncedTorrents);
+    for (const hash of hashes) {
+      if (hash !== removedHash) {
+        next[hash] = this.syncedTorrents[hash];
+      }
+    }
+    this.syncedTorrents = next;
   }
 }

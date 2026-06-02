@@ -68,27 +68,132 @@ export class TorrentInfo {
 
   static fromJson(json: Record<string, Object>): TorrentInfo {
     const t: TorrentInfo = new TorrentInfo();
-    t.hash = json['hash'] as string;
-    t.name = json['name'] as string;
-    t.size = json['size'] as number;
-    t.progress = json['progress'] as number;
-    t.dlspeed = json['dlspeed'] as number;
-    t.upspeed = json['upspeed'] as number;
-    t.state = json['state'] as string;
-    t.num_seeds = json['num_seeds'] as number;
-    t.num_leechs = json['num_leechs'] as number;
-    t.ratio = json['ratio'] as number;
-    t.eta = json['eta'] as number;
-    t.added_on = json['added_on'] as number;
-    t.completion_on = json['completion_on'] as number;
-    t.save_path = json['save_path'] as string;
-    t.tags = json['tags'] as string;
-    t.category = json['category'] as string;
-    t.uploaded = json['uploaded'] as number;
-    t.downloaded = json['downloaded'] as number;
-    t.amount_left = json['amount_left'] as number;
-    t.dl_limit = typeof json['dl_limit'] === 'number' ? json['dl_limit'] as number : 0;
-    t.ul_limit = typeof json['ul_limit'] === 'number' ? json['ul_limit'] as number : 0;
+    t.applyJson(json);
     return t;
+  }
+
+  applyJson(json: Record<string, Object>): void {
+    if (TorrentInfo.hasField(json, 'hash')) {
+      this.hash = TorrentInfo.readString(json['hash']);
+    }
+    if (TorrentInfo.hasField(json, 'name')) {
+      this.name = TorrentInfo.readString(json['name']);
+    }
+    if (TorrentInfo.hasField(json, 'size')) {
+      this.size = TorrentInfo.readNumber(json['size']);
+    }
+    if (TorrentInfo.hasField(json, 'progress')) {
+      this.progress = TorrentInfo.readNumber(json['progress']);
+    }
+    if (TorrentInfo.hasField(json, 'dlspeed')) {
+      this.dlspeed = TorrentInfo.readNumber(json['dlspeed']);
+    }
+    if (TorrentInfo.hasField(json, 'upspeed')) {
+      this.upspeed = TorrentInfo.readNumber(json['upspeed']);
+    }
+    if (TorrentInfo.hasField(json, 'state')) {
+      this.state = TorrentInfo.readString(json['state']);
+    }
+    if (TorrentInfo.hasField(json, 'num_seeds')) {
+      this.num_seeds = TorrentInfo.readNumber(json['num_seeds']);
+    }
+    if (TorrentInfo.hasField(json, 'num_leechs')) {
+      this.num_leechs = TorrentInfo.readNumber(json['num_leechs']);
+    }
+    if (TorrentInfo.hasField(json, 'ratio')) {
+      this.ratio = TorrentInfo.readNumber(json['ratio']);
+    }
+    if (TorrentInfo.hasField(json, 'eta')) {
+      this.eta = TorrentInfo.readNumber(json['eta']);
+    }
+    if (TorrentInfo.hasField(json, 'added_on')) {
+      this.added_on = TorrentInfo.readNumber(json['added_on']);
+    }
+    if (TorrentInfo.hasField(json, 'completion_on')) {
+      this.completion_on = TorrentInfo.readNumber(json['completion_on']);
+    }
+    if (TorrentInfo.hasField(json, 'save_path')) {
+      this.save_path = TorrentInfo.readString(json['save_path']);
+    }
+    if (TorrentInfo.hasField(json, 'tags')) {
+      this.tags = TorrentInfo.readString(json['tags']);
+    }
+    if (TorrentInfo.hasField(json, 'category')) {
+      this.category = TorrentInfo.readString(json['category']);
+    }
+    if (TorrentInfo.hasField(json, 'uploaded')) {
+      this.uploaded = TorrentInfo.readNumber(json['uploaded']);
+    }
+    if (TorrentInfo.hasField(json, 'downloaded')) {
+      this.downloaded = TorrentInfo.readNumber(json['downloaded']);
+    }
+    if (TorrentInfo.hasField(json, 'amount_left')) {
+      this.amount_left = TorrentInfo.readNumber(json['amount_left']);
+    }
+    if (TorrentInfo.hasField(json, 'dl_limit')) {
+      this.dl_limit = TorrentInfo.readNumberAllowNegative(json['dl_limit']);
+    }
+    if (TorrentInfo.hasField(json, 'ul_limit')) {
+      this.ul_limit = TorrentInfo.readNumberAllowNegative(json['ul_limit']);
+    }
+  }
+
+  static copyFrom(source: TorrentInfo): TorrentInfo {
+    const t: TorrentInfo = new TorrentInfo();
+    t.hash = source.hash;
+    t.name = source.name;
+    t.size = source.size;
+    t.progress = source.progress;
+    t.dlspeed = source.dlspeed;
+    t.upspeed = source.upspeed;
+    t.state = source.state;
+    t.num_seeds = source.num_seeds;
+    t.num_leechs = source.num_leechs;
+    t.ratio = source.ratio;
+    t.eta = source.eta;
+    t.added_on = source.added_on;
+    t.completion_on = source.completion_on;
+    t.save_path = source.save_path;
+    t.tags = source.tags;
+    t.category = source.category;
+    t.uploaded = source.uploaded;
+    t.downloaded = source.downloaded;
+    t.amount_left = source.amount_left;
+    t.dl_limit = source.dl_limit;
+    t.ul_limit = source.ul_limit;
+    return t;
+  }
+
+  private static readNumber(value: Object): number {
+    if (typeof value !== 'number') {
+      return 0;
+    }
+    const numberValue: number = value as number;
+    if (numberValue !== numberValue || numberValue < 0) {
+      return 0;
+    }
+    return numberValue;
+  }
+
+  private static readNumberAllowNegative(value: Object): number {
+    if (typeof value !== 'number') {
+      return 0;
+    }
+    const numberValue: number = value as number;
+    if (numberValue !== numberValue) {
+      return 0;
+    }
+    return numberValue;
+  }
+
+  private static readString(value: Object): string {
+    if (typeof value !== 'string') {
+      return '';
+    }
+    return value as string;
+  }
+
+  private static hasField(json: Record<string, Object>, key: string): boolean {
+    return json[key] !== undefined;
   }
 }

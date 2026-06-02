@@ -45,6 +45,7 @@ export class ConnectionManager {
     }
     const result: ApiResult<string> = await this.api.login(url, username, password);
     if (result.success) {
+      await this.api.getWebApiVersion();
       this._isConnected = true;
       // 当前会话配置（内存中保存完整密码用于API调用）
       const config: ServerConfig = new ServerConfig(url, username, password);
@@ -71,6 +72,7 @@ export class ConnectionManager {
     }
     const result: ApiResult<string> = await this.api.login(config.url, config.username, config.password);
     if (result.success) {
+      await this.api.getWebApiVersion();
       this._isConnected = true;
       hilog.info(AppConstants.LOG_DOMAIN, AppConstants.LOG_TAG, 'Auto-reconnect successful');
       return true;

@@ -6,6 +6,7 @@ import { hilog } from '@kit.PerformanceAnalysisKit';
 export class HttpClient {
   private baseUrl: string = '';
   private sid: string = '';
+  private origin: string = '';
   private static instance: HttpClient | null = null;
 
   static getInstance(): HttpClient {
@@ -21,6 +22,7 @@ export class HttpClient {
     } else {
       this.baseUrl = url;
     }
+    this.origin = this.extractOrigin(this.baseUrl);
   }
 
   getBaseUrl(): string {
@@ -155,6 +157,8 @@ export class HttpClient {
           'Accept': 'text/plain',
           'Cache-Control': 'no-cache',
           'Cookie': '',
+          'Referer': this.origin,
+          'Origin': this.origin,
         },
         extraData: body,
         connectTimeout: AppConstants.HTTP_TIMEOUT,
@@ -189,24 +193,20 @@ export class HttpClient {
 
   private extractSidFromResponse(response: http.HttpResponse): boolean {
     try {
-      // Serialize headers to string and search for SID
+      const headerRecord: Record<string, Object> = response.header as Record<string, Object>;
+      const setCookie: string = this.readHeaderValue(headerRecord, 'Set-Cookie');
+      const sidFromCookie: string = this.extractSidFromCookie(setCookie);
+      if (sidFromCookie.length > 0) {
+        this.sid = sidFromCookie;
+        hilog.info(AppConstants.LOG_DOMAIN, AppConstants.LOG_TAG, `Extracted SID: ${this.sid.substring(0, 8)}...`);
+        return true;
+      }
+
       const headerStr: string = JSON.stringify(response.header);
       hilog.info(AppConstants.LOG_DOMAIN, AppConstants.LOG_TAG, `Response headers: ${headerStr}`);
-      const idx: number = headerStr.indexOf('SID=');
-      if (idx >= 0) {
-        const start: number = idx + 4;
-        const end: number = headerStr.indexOf(';', start);
-        if (end > start) {
-          this.sid = headerStr.substring(start, end);
-        } else {
-          // SID might be at end of string or followed by quote
-          const quoteEnd: number = headerStr.indexOf('"', start);
-          if (quoteEnd > start) {
-            this.sid = headerStr.substring(start, quoteEnd);
-          } else {
-            this.sid = headerStr.substring(start);
-          }
-        }
+      const sidFromSerialized: string = this.extractSidFromCookie(headerStr);
+      if (sidFromSerialized.length > 0) {
+        this.sid = sidFromSerialized;
         hilog.info(AppConstants.LOG_DOMAIN, AppConstants.LOG_TAG, `Extracted SID: ${this.sid.substring(0, 8)}...`);
         return this.sid.length > 0;
       } else {
@@ -221,6 +221,8 @@ export class HttpClient {
   private buildHeaders(): Record<string, string> {
     const headers: Record<string, string> = {};
     headers['Accept'] = 'application/json';
+    headers['Referer'] = this.origin;
+    headers['Origin'] = this.origin;
     if (this.sid.length > 0) {
       headers['Cookie'] = `SID=${this.sid}`;
     }
@@ -247,5 +249,54 @@ export class HttpClient {
       parts.push(`${encodeURIComponent(key)}=${encodeURIComponent(value)}`);
     }
     return parts.join('&');
+  }
+
+  private extractOrigin(url: string): string {
+    const schemeEnd: number = url.indexOf('://');
+    if (schemeEnd < 0) {
+      return url;
+    }
+    const pathStart: number = url.indexOf('/', schemeEnd + 3);
+    if (pathStart < 0) {
+      return url;
+    }
+    return url.substring(0, pathStart);
+  }
+
+  private readHeaderValue(headers: Record<string, Object>, name: string): string {
+    const keys: string[] = Object.keys(headers);
+    const target: string = name.toLowerCase();
+    for (const key of keys) {
+      if (key.toLowerCase() === target) {
+        const value: Object = headers[key];
+        if (typeof value === 'string') {
+          return value as string;
+        }
+        if (Array.isArray(value)) {
+          return (value as Object[]).join(';');
+        }
+        return JSON.stringify(value);
+      }
+    }
+    return '';
+  }
+
+  private extractSidFromCookie(cookie: string): string {
+    const idx: number = cookie.indexOf('SID=');
+    if (idx < 0) {
+      return '';
+    }
+    const start: number = idx + 4;
+    let end: number = cookie.indexOf(';', start);
+    if (end <= start) {
+      end = cookie.indexOf('"', start);
+    }
+    if (end <= start) {
+      end = cookie.indexOf(',', start);
+    }
+    if (end <= start) {
+      end = cookie.length;
+    }
+    return cookie.substring(start, end);
   }
 }
