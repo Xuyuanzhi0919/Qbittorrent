@@ -2,8 +2,7 @@ import { QbittorrentApi } from '../network/QbittorrentApi';
 import { PreferencesStore } from '../store/PreferencesStore';
 import { ServerConfig } from '../model/ServerConfig';
 import { ApiResult } from '../model/ApiResult';
-import { hilog } from '@kit.PerformanceAnalysisKit';
-import { AppConstants } from '../common/constants/AppConstants';
+import { LogUtil } from '@pura/harmony-utils';
 
 export class ConnectionManager {
   private api: QbittorrentApi = new QbittorrentApi();
@@ -12,7 +11,7 @@ export class ConnectionManager {
   private _isConnected: boolean = false;
 
   get isConnected(): boolean {
-    hilog.info(AppConstants.LOG_DOMAIN, AppConstants.LOG_TAG, `ConnectionManager.isConnected getter called, returning: ${this._isConnected}`);
+    LogUtil.info('ConnectionManager.isConnected getter called, returning: ' + this._isConnected);
     return this._isConnected;
   }
 
@@ -29,13 +28,13 @@ export class ConnectionManager {
     return false;
   }
 
-  async connect(url: string, username: string, password: string, rememberPassword: boolean = true): Promise<ApiResult<string>> {
-    hilog.info(AppConstants.LOG_DOMAIN, AppConstants.LOG_TAG, `Connecting to ${url}`);
+  async connect(url: string, username: string, password: string, rememberPassword: boolean = true, apiKey: string = ''): Promise<ApiResult<string>> {
+    LogUtil.info('Connecting to ' + url);
     if (this._isConnected) {
       const validationApi: QbittorrentApi = new QbittorrentApi(false);
-      const validationResult: ApiResult<string> = await validationApi.login(url, username, password);
+      const validationResult: ApiResult<string> = await validationApi.login(url, username, password, apiKey);
       if (!validationResult.success) {
-        hilog.error(AppConstants.LOG_DOMAIN, AppConstants.LOG_TAG, `Connection validation failed: ${validationResult.error}`);
+        LogUtil.error('Connection validation failed: ' + validationResult.error);
         return validationResult;
       }
       await validationApi.logout();
@@ -43,21 +42,21 @@ export class ConnectionManager {
       this._isConnected = false;
       this.currentConfig = null;
     }
-    const result: ApiResult<string> = await this.api.login(url, username, password);
+    const result: ApiResult<string> = await this.api.login(url, username, password, apiKey);
     if (result.success) {
       await this.api.getWebApiVersion();
       this._isConnected = true;
       // 当前会话配置（内存中保存完整密码用于API调用）
-      const config: ServerConfig = new ServerConfig(url, username, password);
+      const config: ServerConfig = new ServerConfig(url, username, password, apiKey);
       this.currentConfig = config;
       // 根据用户选择决定持久化保存的内容
       await this.store.saveServerConfig(config, rememberPassword);
       await this.store.saveRememberPassword(rememberPassword);
-      hilog.info(AppConstants.LOG_DOMAIN, AppConstants.LOG_TAG, `Connected successfully, rememberPassword=${rememberPassword}`);
+      LogUtil.info('Connected successfully, rememberPassword=' + rememberPassword);
     } else {
       this._isConnected = false;
       this.currentConfig = null;
-      hilog.error(AppConstants.LOG_DOMAIN, AppConstants.LOG_TAG, `Connection failed: ${result.error}`);
+      LogUtil.error('Connection failed: ' + result.error);
     }
     return result;
   }
@@ -67,18 +66,18 @@ export class ConnectionManager {
       return false;
     }
     const config: ServerConfig = this.currentConfig as ServerConfig;
-    if (config.password.length === 0) {
+    if (config.password.length === 0 && config.apiKey.length === 0) {
       return false;
     }
-    const result: ApiResult<string> = await this.api.login(config.url, config.username, config.password);
+    const result: ApiResult<string> = await this.api.login(config.url, config.username, config.password, config.apiKey);
     if (result.success) {
       await this.api.getWebApiVersion();
       this._isConnected = true;
-      hilog.info(AppConstants.LOG_DOMAIN, AppConstants.LOG_TAG, 'Auto-reconnect successful');
+      LogUtil.info('Auto-reconnect successful');
       return true;
     }
     this._isConnected = false;
-    hilog.error(AppConstants.LOG_DOMAIN, AppConstants.LOG_TAG, 'Auto-reconnect failed');
+    LogUtil.error('Auto-reconnect failed');
     return false;
   }
 
@@ -87,7 +86,7 @@ export class ConnectionManager {
     this._isConnected = false;
     this.currentConfig = null;
     // 断开连接时不清除保存的配置，用户下次可以直接重连
-    hilog.info(AppConstants.LOG_DOMAIN, AppConstants.LOG_TAG, 'Disconnected (config preserved)');
+    LogUtil.info('Disconnected (config preserved)');
   }
 
   async disconnectAndClear(): Promise<void> {
@@ -95,7 +94,7 @@ export class ConnectionManager {
     this._isConnected = false;
     this.currentConfig = null;
     await this.store.clearServerConfig();
-    hilog.info(AppConstants.LOG_DOMAIN, AppConstants.LOG_TAG, 'Disconnected and config cleared');
+    LogUtil.info('Disconnected and config cleared');
   }
 
   getApi(): QbittorrentApi {

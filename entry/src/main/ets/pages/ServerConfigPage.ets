@@ -1,7 +1,6 @@
 import { ConnectionManager } from '../service/ConnectionManager';
-import { AppConstants } from '../common/constants/AppConstants';
 import { AppService } from './Index';
-import { hilog } from '@kit.PerformanceAnalysisKit';
+import { LogUtil } from '@pura/harmony-utils';
 import { PreferencesStore } from '../store/PreferencesStore';
 
 @Component
@@ -13,6 +12,7 @@ export struct ServerConfigPage {
   @State serverUrl: string = '';
   @State username: string = '';
   @State password: string = '';
+  @State apiKey: string = '';
   @State rememberPassword: boolean = true;
   @State isLoading: boolean = false;
   @State errorMessage: string = '';
@@ -24,21 +24,23 @@ export struct ServerConfigPage {
   async aboutToAppear(): Promise<void> {
     // 先加载记住密码设置
     this.rememberPassword = await this.store.loadRememberPassword();
-    hilog.info(AppConstants.LOG_DOMAIN, AppConstants.LOG_TAG, `ServerConfigPage: rememberPassword=${this.rememberPassword}`);
+    LogUtil.info('ServerConfigPage: rememberPassword=' + this.rememberPassword);
 
     const config = this.connectionManager.serverConfig;
-    hilog.info(AppConstants.LOG_DOMAIN, AppConstants.LOG_TAG, `ServerConfigPage: config=${config ? 'not null' : 'null'}`);
+    LogUtil.info('ServerConfigPage: config=' + (config ? 'not null' : 'null'));
     if (config !== null) {
       this.serverUrl = config.url;
       this.username = config.username;
-      hilog.info(AppConstants.LOG_DOMAIN, AppConstants.LOG_TAG, `ServerConfigPage: url=${config.url}, username=${config.username}, password length=${config.password.length}`);
+      LogUtil.info('ServerConfigPage: url=' + config.url + ', username=' + config.username + ', password length=' + config.password.length);
       // 只有在用户之前选择了记住密码时才填充密码
       if (this.rememberPassword) {
         this.password = config.password;
-        hilog.info(AppConstants.LOG_DOMAIN, AppConstants.LOG_TAG, `ServerConfigPage: password loaded, length=${this.password.length}`);
+        this.apiKey = config.apiKey;
+        LogUtil.info('ServerConfigPage: password loaded, length=' + this.password.length + ', apiKey length=' + this.apiKey.length);
       } else {
         this.password = '';
-        hilog.info(AppConstants.LOG_DOMAIN, AppConstants.LOG_TAG, 'ServerConfigPage: password not loaded (rememberPassword=false)');
+        this.apiKey = '';
+        LogUtil.info('ServerConfigPage: password not loaded (rememberPassword=false)');
       }
     }
 
@@ -64,8 +66,9 @@ export struct ServerConfigPage {
       this.errorMessage = '请输入服务器地址';
       return;
     }
-    if (this.username.trim().length === 0) {
-      this.errorMessage = '请输入用户名';
+    const trimmedApiKey: string = this.apiKey.trim();
+    if (trimmedApiKey.length === 0 && this.username.trim().length === 0) {
+      this.errorMessage = '请输入用户名，或填写 API 密钥';
       return;
     }
     // 长度校验
@@ -77,35 +80,38 @@ export struct ServerConfigPage {
       this.errorMessage = '密码不能超过256个字符';
       return;
     }
+    if (this.apiKey.length > 512) {
+      this.errorMessage = 'API 密钥不能超过512个字符';
+      return;
+    }
 
     this.isLoading = true;
     this.errorMessage = '';
 
-    hilog.info(AppConstants.LOG_DOMAIN, AppConstants.LOG_TAG,
-      `ServerConfigPage: connecting with rememberPassword=${this.rememberPassword}`);
+    LogUtil.info('ServerConfigPage: connecting with rememberPassword=' + this.rememberPassword);
 
     const result = await this.connectionManager.connect(
       this.serverUrl.trim(),
       this.username.trim(),
       this.password,
-      this.rememberPassword
+      this.rememberPassword,
+      trimmedApiKey
     );
-    this.isLoading = false;
 
     if (result.success) {
+      await AppService.getService().bootstrapAfterConnect();
       this.isConnected = true;
       this.guestMode = false;
-      hilog.info(AppConstants.LOG_DOMAIN, AppConstants.LOG_TAG,
-        'ServerConfigPage: connection successful');
+      LogUtil.info('ServerConfigPage: connection successful');
       // 连接成功后返回主页
       AppStorage.setOrCreate('currentTabIndex', 0);
       AppService.getNavPathStack().clear();
     } else {
       this.isConnected = this.connectionManager.isConnected;
       this.errorMessage = result.error || '连接失败';
-      hilog.error(AppConstants.LOG_DOMAIN, AppConstants.LOG_TAG,
-        `ServerConfigPage: connection failed: ${this.errorMessage}`);
+      LogUtil.error('ServerConfigPage: connection failed: ' + this.errorMessage);
     }
+    this.isLoading = false;
   }
 
   private enterDemoMode(): void {
@@ -274,6 +280,32 @@ export struct ServerConfigPage {
                 .maxLength(256)
                 .onChange((value: string) => {
                   this.password = value;
+                  this.errorMessage = '';
+                })
+            }
+
+            Column({ space: 6 }) {
+              Text('API 密钥（新版可选）')
+                .fontSize(12)
+                .fontColor($r('app.color.text_secondary'))
+                .width('100%')
+              TextInput({ placeholder: '支持时优先使用；旧版可留空', text: this.apiKey })
+                .type(InputType.Password)
+                .showPasswordIcon(true)
+                .placeholderColor($r('app.color.text_hint'))
+                .fontColor($r('app.color.text_primary'))
+                .caretColor($r('app.color.accent_color'))
+                .backgroundColor($r('app.color.login_input_background'))
+                .border({
+                  width: 1,
+                  color: $r('app.color.login_input_border')
+                })
+                .borderRadius(16)
+                .height(54)
+                .padding({ left: 16, right: 16 })
+                .maxLength(512)
+                .onChange((value: string) => {
+                  this.apiKey = value;
                   this.errorMessage = '';
                 })
             }

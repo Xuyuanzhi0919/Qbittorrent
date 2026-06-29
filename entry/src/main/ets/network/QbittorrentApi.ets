@@ -9,42 +9,89 @@ import { TorrentPeer } from '../model/TorrentPeer';
 import { TorrentProperties } from '../model/TorrentProperties';
 import { TorrentPeersSync } from '../model/TorrentPeersSync';
 import { SyncMainData } from '../model/SyncMainData';
-import { hilog } from '@kit.PerformanceAnalysisKit';
-import { AppConstants } from '../common/constants/AppConstants';
+import { LogUtil } from '@pura/harmony-utils';
 
 export class QbittorrentApi {
   private client: HttpClient;
   private webApiVersion: string = '';
+  private usingApiKey: boolean = false;
 
   constructor(useSharedClient: boolean = true) {
     this.client = useSharedClient ? HttpClient.getInstance() : new HttpClient();
   }
 
-  async login(baseUrl: string, username: string, password: string): Promise<ApiResult<string>> {
+  async login(baseUrl: string, username: string, password: string, apiKey: string = ''): Promise<ApiResult<string>> {
     this.client.setBaseUrl(baseUrl);
-    this.client.clearSid();
+    this.client.clearAuth();
     this.webApiVersion = '';
+    this.usingApiKey = false;
+
+    const trimmedApiKey: string = apiKey.trim();
+    if (trimmedApiKey.length > 0) {
+      this.client.setApiKey(trimmedApiKey);
+      const verifyResult: ApiResult<string> = await this.client.get(QbiApiPaths.APP_WEB_API_VERSION);
+      if (verifyResult.success) {
+        this.webApiVersion = (verifyResult.data as string).trim();
+        this.usingApiKey = true;
+        return ApiResult.ok<string>('登录成功');
+      }
+      this.client.clearAuth();
+      LogUtil.warn('API key verification failed: ' + verifyResult.error + ', statusCode=' + verifyResult.statusCode);
+      if (username.trim().length === 0) {
+        return ApiResult.fail<string>('API 密钥校验失败：' + verifyResult.error, verifyResult.statusCode);
+      }
+      LogUtil.warn('API key unavailable, fallback to username/password login');
+    }
+
+    return await this.loginWithPassword(username, password);
+  }
+
+  private async loginWithPassword(username: string, password: string): Promise<ApiResult<string>> {
     const params: Record<string, string> = {
       'username': username,
       'password': password,
     };
     const result: ApiResult<string> = await this.client.postForLogin(QbiApiPaths.AUTH_LOGIN, params);
     if (result.success && result.data === 'Ok.') {
+      const verifyResult: ApiResult<string> = await this.client.get(QbiApiPaths.APP_WEB_API_VERSION);
+      if (!verifyResult.success) {
+        const sidLength: number = this.client.getSid().length;
+        const statusCode: number = verifyResult.statusCode;
+        const error: string = verifyResult.error || '未知错误';
+        this.client.clearAuth();
+        LogUtil.warn('Login session verification failed: ' + verifyResult.error + ', statusCode=' + verifyResult.statusCode + ', sidLength=' + sidLength);
+        if (result.statusCode === 204 && sidLength === 0) {
+          return ApiResult.fail<string>(
+            '登录接口返回204，但会话校验失败，且客户端未读取到 SID Cookie；旧版 qB 请使用用户名密码登录并检查 WebUI Cookie/Host/反向代理配置。详情：' +
+              error + '，状态码=' + statusCode,
+            statusCode
+          );
+        }
+        return ApiResult.fail<string>('登录后会话校验失败：' + error + '，状态码=' + statusCode + '，SID长度=' + sidLength, statusCode);
+      }
+      this.webApiVersion = (verifyResult.data as string).trim();
       return ApiResult.ok<string>('登录成功');
     }
-    this.client.clearSid();
+    this.client.clearAuth();
     if (result.success) {
       // HTTP 200 but response body is not "Ok." — treat as auth failure
-      hilog.warn(AppConstants.LOG_DOMAIN, AppConstants.LOG_TAG, `Login rejected: ${result.data}`);
+      LogUtil.warn('Login rejected: ' + result.data);
       return ApiResult.fail<string>('用户名或密码错误');
     }
     return result;
   }
 
   async logout(): Promise<ApiResult<string>> {
+    if (this.usingApiKey) {
+      this.client.clearAuth();
+      this.webApiVersion = '';
+      this.usingApiKey = false;
+      return ApiResult.ok<string>('已断开连接');
+    }
     const result: ApiResult<string> = await this.client.post(QbiApiPaths.AUTH_LOGOUT, {});
-    this.client.clearSid();
+    this.client.clearAuth();
     this.webApiVersion = '';
+    this.usingApiKey = false;
     return result;
   }
 
@@ -67,17 +114,15 @@ export class QbittorrentApi {
     }
     try {
       const raw: string = result.data as string;
-      hilog.info(AppConstants.LOG_DOMAIN, AppConstants.LOG_TAG, `TransferInfo raw: ${raw.substring(0, 200)}`);
+      LogUtil.info('TransferInfo raw: ' + raw.substring(0, 200));
       const parsed: Record<string, Object> = JSON.parse(raw) as Record<string, Object>;
       const connStatus: Object | undefined = parsed['connection_status'];
-      hilog.info(AppConstants.LOG_DOMAIN, AppConstants.LOG_TAG,
-        `connection_status debug: value=[${connStatus}] type=${typeof connStatus} keys=${Object.keys(parsed).join(',')}`);
+      LogUtil.info('connection_status debug: value=[' + connStatus + '] type=' + typeof connStatus + ' keys=' + Object.keys(parsed).join(','));
       const info: TransferInfo = TransferInfo.fromJson(parsed);
-      hilog.info(AppConstants.LOG_DOMAIN, AppConstants.LOG_TAG,
-        `TransferInfo parsed: dl_speed=${info.dl_info_speed} up_speed=${info.up_info_speed} dht=${info.dht_nodes} conn=${info.connection_status}`);
+      LogUtil.info('TransferInfo parsed: dl_speed=' + info.dl_info_speed + ' up_speed=' + info.up_info_speed + ' dht=' + info.dht_nodes + ' conn=' + info.connection_status);
       return ApiResult.ok<TransferInfo>(info);
     } catch (err) {
-      hilog.error(AppConstants.LOG_DOMAIN, AppConstants.LOG_TAG, `TransferInfo parse error: ${JSON.stringify(err)}, data type: ${typeof result.data}`);
+      LogUtil.error('TransferInfo parse error: ' + JSON.stringify(err) + ', data type: ' + typeof result.data);
       return ApiResult.fail<TransferInfo>('解析传输信息失败');
     }
   }
@@ -87,16 +132,16 @@ export class QbittorrentApi {
     const params: string[] = [];
     if (filter) {
       const normalizedFilter: string = await this.normalizeTorrentFilter(filter);
-      params.push(`filter=${encodeURIComponent(normalizedFilter)}`);
+      params.push('filter=' + encodeURIComponent(normalizedFilter));
     }
     if (sort) {
-      params.push(`sort=${encodeURIComponent(sort)}`);
+      params.push('sort=' + encodeURIComponent(sort));
     }
     if (category) {
-      params.push(`category=${encodeURIComponent(category)}`);
+      params.push('category=' + encodeURIComponent(category));
     }
     if (hashes) {
-      params.push(`hashes=${encodeURIComponent(hashes)}`);
+      params.push('hashes=' + encodeURIComponent(hashes));
     }
     if (params.length > 0) {
       path += '?' + params.join('&');
@@ -113,16 +158,16 @@ export class QbittorrentApi {
         const record: Record<string, Object> = item as Record<string, Object>;
         torrents.push(TorrentInfo.fromJson(record));
       }
-      hilog.info(AppConstants.LOG_DOMAIN, AppConstants.LOG_TAG, `TorrentList parsed: ${torrents.length} torrents`);
+      LogUtil.info('TorrentList parsed: ' + torrents.length + ' torrents');
       return ApiResult.ok<TorrentInfo[]>(torrents);
     } catch (err) {
-      hilog.error(AppConstants.LOG_DOMAIN, AppConstants.LOG_TAG, `TorrentList parse error: ${JSON.stringify(err)}`);
+      LogUtil.error('TorrentList parse error: ' + JSON.stringify(err));
       return ApiResult.fail<TorrentInfo[]>('解析种子列表失败');
     }
   }
 
   async getTorrentProperties(hash: string): Promise<ApiResult<TorrentProperties>> {
-    const path: string = `${QbiApiPaths.TORRENT_PROPERTIES}?hash=${encodeURIComponent(hash)}`;
+    const path: string = QbiApiPaths.TORRENT_PROPERTIES + '?hash=' + encodeURIComponent(hash);
     const result: ApiResult<string> = await this.client.get(path);
     if (!result.success) {
       return ApiResult.fail<TorrentProperties>(result.error, result.statusCode);
@@ -136,7 +181,7 @@ export class QbittorrentApi {
   }
 
   async getTorrentFiles(hash: string): Promise<ApiResult<TorrentFile[]>> {
-    const path: string = `${QbiApiPaths.TORRENT_FILES}?hash=${encodeURIComponent(hash)}`;
+    const path: string = QbiApiPaths.TORRENT_FILES + '?hash=' + encodeURIComponent(hash);
     const result: ApiResult<string> = await this.client.get(path);
     if (!result.success) {
       return ApiResult.fail<TorrentFile[]>(result.error, result.statusCode);
@@ -161,7 +206,7 @@ export class QbittorrentApi {
   }
 
   async getTorrentTrackers(hash: string): Promise<ApiResult<TorrentTracker[]>> {
-    const path: string = `${QbiApiPaths.TORRENT_TRACKERS}?hash=${encodeURIComponent(hash)}`;
+    const path: string = QbiApiPaths.TORRENT_TRACKERS + '?hash=' + encodeURIComponent(hash);
     const result: ApiResult<string> = await this.client.get(path);
     if (!result.success) {
       return ApiResult.fail<TorrentTracker[]>(result.error, result.statusCode);
@@ -185,7 +230,7 @@ export class QbittorrentApi {
   }
 
   async getTorrentPeers(hash: string, rid: number = 0): Promise<ApiResult<TorrentPeersSync>> {
-    const path: string = `${QbiApiPaths.TORRENT_PEERS}?hash=${encodeURIComponent(hash)}&rid=${rid}`;
+    const path: string = QbiApiPaths.TORRENT_PEERS + '?hash=' + encodeURIComponent(hash) + '&rid=' + rid;
     const result: ApiResult<string> = await this.client.get(path);
     if (!result.success) {
       return ApiResult.fail<TorrentPeersSync>(result.error, result.statusCode);
@@ -213,7 +258,7 @@ export class QbittorrentApi {
   }
 
   async getMainData(rid: number = 0): Promise<ApiResult<SyncMainData>> {
-    const path: string = `${QbiApiPaths.SYNC_MAIN_DATA}?rid=${rid}`;
+    const path: string = QbiApiPaths.SYNC_MAIN_DATA + '?rid=' + rid;
     const result: ApiResult<string> = await this.client.get(path);
     if (!result.success) {
       return ApiResult.fail<SyncMainData>(result.error, result.statusCode);
@@ -222,7 +267,7 @@ export class QbittorrentApi {
       const parsed: Record<string, Object> = JSON.parse(result.data as string) as Record<string, Object>;
       return ApiResult.ok<SyncMainData>(SyncMainData.fromJson(parsed));
     } catch (err) {
-      hilog.error(AppConstants.LOG_DOMAIN, AppConstants.LOG_TAG, `MainData parse error: ${JSON.stringify(err)}`);
+      LogUtil.error('MainData parse error: ' + JSON.stringify(err));
       return ApiResult.fail<SyncMainData>('解析同步数据失败');
     }
   }
